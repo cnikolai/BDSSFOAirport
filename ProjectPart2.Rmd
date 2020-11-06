@@ -1,0 +1,52 @@
+---
+title: "Project"
+author: "Cynthia Nikolai", "Ben Corriveau","Avisek Choudhury", "Tyler Smith"
+date: "11/6/2020"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Describe the underlying SFO data and research questions. (1-2 paragraphs)
+## Part A
+### Hypothesis/Hypotheses
+Mention overall research questions posed by executives. Mention not just the analysis you will do, but any predicted outcomes you may have. (1-3 paragraphs, bullet points, etc)
+
+#### Data Description/EDA
+Start with a general overview of the data (sample size, important variables, etc); describe what you can about the variables needed to address the executives’ questions; provide a small number of tables or figures with EDA output relevant to your research. Mention any insights gleaned from EDA that altered your original hypothesis or changed your analysis approach.
+
+#### Analysis plan
+Detail the specific analyses that will address these research questions. (1-2 paragraphs, or numbered/bulleted list)
+
+#### Results
+Run models - but do not necessarily post all code chunks and all outputs. Organize and summarize the most crucial results. Describe the analytic results (regression coefficients, p-values, comparison of test error rates, interpretation of clusters, benefit of multiple imputation, interpretation of sentiment and topics, etc) of the various analyses you ran. Interpret the meaning of the result. (length open)
+
+#### Discussion
+Relate the results directly to the prompts posed by the SFO executives. Did you address the research questions? Did the results match your expectations, or did you find something different from you were expecting? What are the strengths of your chosen analysis, and what are the potential limitations of the method used or issues in the data?
+
+# Part B
+##Research Question and Hypothesis
+Briefly describe your own general research question and specific hypothesis behind it.
+
+#### EDA
+Describe any key variabls for your research question that were not used in Part A, and/or summarize EDA findings from Part A.
+
+#### Analysis Plan
+Describe the method chosen to address your own research question and why.
+
+#### Results
+Same as descibed in Part A - summarize important results and how the chosen method is evaluated, and interpret findings.
+
+#### Discussion
+Relate results back to your broader research question.
+
+# Appendix
+Include here relevant codes and output that help you address the questions above.
+
+If you have a massive Rmarkdown that is already knitted, you can include the appendix and summary write-up in separate documents.
