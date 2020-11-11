@@ -17,14 +17,22 @@ Marketing executives developed a survey and administered it to customers over th
 ## Part A
 ### Hypothesis/Hypotheses
 ### Question 1
-Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.  We are theorizing that there will be distinct patterns that emerge in the deomgraphic data, but are yet unsure of what they will show.
+Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.  
+
+We are theorizing that there will be distinct patterns that emerge in the deomgraphic data, but are yet unsure of what they will show.
 
 ### Question 2
 The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport (see Question 6 in the data directory). The executives want us to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
 
+Based on the fact that the questions fall into distinct categories, we are theorzing that there are distinct underlying factors that influence overall satisfaction.  What we do not know though is which are the most/least important areas of the airport as it pertains to overall satisfaction.
+
+### Question 3
+Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
+
+We strongly believe that the free response questions will align with the overall satisfaction scores.
 
 #### Data Description/EDA
-Start with a general overview of the data (sample size, important variables, etc); describe what you can about the variables needed to address the executives’ questions; provide a small number of tables or figures with EDA output relevant to your research. Mention any insights gleaned from EDA that altered your original hypothesis or changed your analysis approach.
+As mentioned above, our data set had 3,234 responses on 100 variables  Of those 100 variables, we were only really interested in the Question 6 responses, and comments (15 columns).  Plus, we are including the demographic information: Age Group, Gender, and Income.  To ensure we had a good sample size, we reviewed missingness for each column.  We were pleased to see that all of the Question 6 responses had fewer than 7% missing data.
 
 #### Analysis plan
 Detail the specific analyses that will address these research questions. (1-2 paragraphs, or numbered/bulleted list)
@@ -77,9 +85,9 @@ sfoDf <- read_delim('/Users/benjamincorriveau/OneDrive/School/BehavioralDS/SFO_s
 ```
 
 #### EDA 
-Let's count the missing rows for each column to get an idea of missingness.
+Let's get the percent of empyty rows for each column to get an idea of missingness.
 ```{r countingNA, message=FALSE, warning=FALSE, error=TRUE }
-sapply(sfoDf, function(x) sum(is.na(x)))
+sapply(sfoDf, function(x) round(sum(is.na(x))/length(x),3))
 ```
 
 We see lot of columns with huge no of missing values. Let's check the columns with more than 50% values are missing.
@@ -228,9 +236,6 @@ We see the same results for both factors MR2 (transportation and parking) and MR
 With 4 factors, it becomes a bit more clear what most respondents seem to favor: clear navigational aides and moving walkways (MR1).  While shopping is also important, the priority for travelers seems to be ease/speed of navigating within the airport. 
 
 #### Research Question #3
-
-Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
-
 
 For sentiment analysis let's have a look at the combined comment column in the given dataset.
 
