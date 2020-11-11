@@ -74,7 +74,7 @@ ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Income)) +
   labs(title="Satisfaction Score by Gender/Income", x='Score', y='Count')
 ```
 
-We can see that the most common response for "How does SFO Airport rate as a whole" was a 4, which is one step below the highest score.  Worth noting here is that while 6 is an option, it represents "Have never used or visited/not applicable" so we consider a 5 the highest score.  The largest number of respondents who gave SFO a 4 appear to have income within $50,000 - $100,00. This could be because they liked it best, or because they are the largest respondent group.  We also see that male respondents had a higher proportion of '3' responses than '4', the opposite being true for females.  We will want to test this theory later in a regression model
+We can see that the most common response for "How does SFO Airport rate as a whole" was a 4, which is one step below the highest score.  Worth noting here is that while 6 is an option, it represents "Have never used or visited/not applicable" so we consider a 5 the highest score.  The largest number of respondents who gave SFO a 4 appear to have income within $50,000 - $100,000. This could be because they liked it best, or because they are the largest respondent group.  We also see that male respondents had a higher proportion of '3' responses than '5', the opposite being true for females.  We will want to test this theory later in a regression model.
 
 Now let's take a look at the responses grouped by Income and Age
 ```{r}
@@ -133,7 +133,7 @@ What we see in the correlation plot leads us to think there may be some themes h
 short_survey %>% 
   nfactors()
 ```
-From the data above, we see that either 3 or 5 factors will likely be best.  We will try both to see if there is a meaningful difference.
+From the data above, we see that either 3 or 4 factors will likely be best.  We will try both to see if there is a meaningful difference.
 ```{r}
 surveyFA_3 <- short_survey %>% 
   fa(., nfactors = 3, rotate = "promax")
