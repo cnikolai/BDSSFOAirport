@@ -320,3 +320,93 @@ avgSentIncome <- wordDf %>%
 #Print the dataset
 head(avgSentIncome, n=20)
 ```
+
+### Topic Models
+
+Let's try topic models to find out the themes. 
+
+```{r, message=FALSE, warning=FALSE}
+library(stm)
+
+feedbackText = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf)
+```
+
+We might need to do some encoding conversion, remove non-graphical characters within the data, and remove that offending character. Let's check for encoding in the dataset.
+
+```{r, message=FALSE, warning=FALSE}
+rvest::guess_encoding(sfoDf$Q7_text_All)
+```
+
+ We see the word “airport” in a lot of the entries. We don’t want this messing with my topics on down the line, so let’s see how much it is around.
+ 
+```{r, message=FALSE, warning=FALSE}
+#Convert the comments to all uppercase
+sfoDf$Q7_text_All <- toupper(sfoDf$Q7_text_All)
+#Find the frequency of airport
+nrow(sfoDf[grepl("AIRPORT", sfoDf$Q7_text_All), ])
+```
+
+We see 'airport' is used almost 500 times. We can add the word 'airport' in the stopwords list. In addition to custom stopwords, we'll also like to include the SMART words again (it is the default) and the english stopwords. 
+
+
+```{r, message=FALSE, warning=FALSE}
+feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf, 
+                           onlycharacter = TRUE,
+                           customstopwords = c("airport", 
+                                               tm::stopwords("SMART"), 
+                                               tm::stopwords("en")))
+
+feedbackTextPrep = prepDocuments(documents = feedbackTextProcess$documents, 
+                               vocab = feedbackTextProcess$vocab,
+                               meta = feedbackTextProcess$meta)
+```
+
+The ` stm` package has some pretty nice facilities for determining a number of topics. We can try topics from 2 to 5 and see what we get.
+
+```{r , message=FALSE, warning=FALSE}
+kTest = searchK(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextProcess$vocab, 
+             K = c(2, 3, 4, 5), verbose = FALSE)
+
+plot(kTest)
+```
+
+Looking at the residual and Semantic Coherence we think 4 topics is the best to go for. With our 4 topics, we can start our actual model.
+
+```{r , message=FALSE, warning=FALSE}
+topics4 = stm(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextPrep$vocab, 
+             K = 4, verbose = FALSE)
+```
+If we plot the stm result, we get the proportional prevalence of the topics, with some keywords for each topic.
+
+
+```{r , message=FALSE, warning=FALSE}
+plot(topics4)
+```
+
+Additional functions can help to understand the words that fall into each topic, which assist in identifying and labeling the topics. 
+
+```{r , message=FALSE, warning=FALSE}
+labelTopics(topics4)
+```
+
+From the plot of the topics and from the example words we can conclude that - 
+
+* Topic 1 is likely expressing about the directions and signs in the SFO airport 
+* Topic 2 is likely expressing about the small display and lack of information displayed. 
+* Topic 3 likely expressing about the customs and security inefficiency and long waiting time. 
+* Topic 4 likely expressing about the restaurants availability and food choices. 
+
+We can look at statements that have a high probability of being associated with each topic here. This presents documents that are representative of each topic.
+
+```{r , message=FALSE, warning=FALSE}
+findThoughts(topics4, texts = feedbackTextPrep$meta$Q7_text_All , n = 1)
+```
+
+We can see the statements are along the expectations we mentioned earlier by each topic.
+
+
+
