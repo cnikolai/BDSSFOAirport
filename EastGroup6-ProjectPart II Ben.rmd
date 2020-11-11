@@ -23,9 +23,7 @@ library(lme4)
 library(psych)
 library(GPArotation)
 library(ggcorrplot)
-```
 
-```{r}
 #Read the data set
 sfoDf <- read_delim('/Users/benjamincorriveau/OneDrive/School/BehavioralDS/SFO_survey_withText.txt', delim="\t")
 ```
@@ -149,18 +147,18 @@ We also see in factor MR2 the same parking and transportation correlation we saw
 
 Finally, we see that factor MR3 is the grouping of information booths we saw in the correlation plot.  Positive responses about either floor's information booth tended match positive responses for the other.  However, positive responses in these questions did not appear to effect the overall score.
 
-Next we will review 5 factors to see if any further patterns emerge.
+Next we will review 4 factors to see if any further patterns emerge.
 ```{r}
-surveyFA_5 <- short_survey %>% 
-  fa(., nfactors = 5, rotate = "promax")
+surveyFA_4 <- short_survey %>% 
+  fa(., nfactors = 4, rotate = "promax")
 
-surveyFA_5$loadings
+surveyFA_4$loadings
 ```
 
 We see mostly the same results here, but now the shopping, food, and navigational information responses are in different factors, with navigation and moving walkways (MR1) having a larger positive correlation with a positive overall score.  Food and shopping (MR4) also seems to be related to a positive overall score, but to a lesser extent.
 
-We also see now that we have separate factors for airport travel (6I,6K,6L,6M), in factor MR5, and parking accommodations (6I,6J,6L), in factor MR2.  Even though they are separate, there is a bit of overlap in 6L and 6I.
+We see the same results for both factors MR2 (transportation and parking) and MR3 (information booths).
 
-With 5 factors, it becomes a bit more clear what most respondents seem to favor: clear navigational aides and moving walkways (MR1).  While shopping is also important, the priority for travelers seems to be ease/speed of navigating within the airport. 
+With 4 factors, it becomes a bit more clear what most respondents seem to favor: clear navigational aides and moving walkways (MR1).  While shopping is also important, the priority for travelers seems to be ease/speed of navigating within the airport. 
 
 
