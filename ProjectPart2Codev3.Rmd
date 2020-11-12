@@ -1,0 +1,150 @@
+---
+title: "Project"
+author: "Cynthia Nikolai", "Ben Corriveau","Avisek Choudhury"
+date: "11/6/2020"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE}
+#clear the environment
+rm(list=ls())
+
+#load the required libraries
+library(tidyverse)
+library(haven)
+library(tidyr)
+library(psych)
+library(jsonlite)
+library(ggcorrplot)
+library(mirt)
+library(factoextra)
+library(cluster)
+library(mclust)
+library(NbClust)
+library(fclust)
+library(poLCA)
+```
+
+```{r}
+set.seed(1847)
+```
+
+
+```{r}
+#read in the data
+sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
+#head(sfoDf)
+```
+
+First, we select the 6 questions that we are interested in and we drop the rows with NAs in them.  
+```{r}
+#select question 6 questions we are interested in
+sfoDf <- sfoDf %>% dplyr::select(Q6A:Q6N) %>% drop_na()
+#head(sfoDf)
+```
+Let's look at a pairwise correlation of the data.  
+```{r}
+sfoDf %>%
+  cor(., use="pairwise.complete") %>% 
+  ggcorrplot()
+```
+It looks like questions (A, B, and C), (D, E, F, and N), (G and H), (I, J, K, L, and M) are positively correlated.   
+
+Note: we tried to do an IRT, and it confirmed that there are 4 different factors, and that these groups corresponded to the 4 different factor laodings.  
+
+Note2: We tried to do a cluster analysis on the data and determined that the best number of clusters is three.  The clusters show a discernible pattern.    
+
+```{r}
+kmeansTest = kmeans(x = na.omit(sfoDf), 
+            centers = 3)
+
+fviz_cluster(kmeansTest, sfoDf)
+```
+Here are the centers of the clusters.  
+```{r}
+kmeansTest$centers
+```
+As you can see, the first cluster focuses around an average score of 5.1. 
+```{r}
+mean(kmeansTest$centers[1,])
+```
+The second cluster focuses around an average score of 4.4.
+```{r}
+mean(kmeansTest$centers[2,])
+```
+The third cluster focuses around an average score of 3.7.  
+```{r}
+mean(kmeansTest$centers[3,])
+```
+
+
+```{r}
+kmeansTest$cluster[100]
+```
+Here is a representative person who falls into the first cluster. 
+```{r}
+sfoDf[100,]
+```
+```{r}
+kmeansTest$cluster[300]
+```
+Here is a representative person who falls into the second cluster. 
+```{r}
+sfoDf[300,]
+```
+```{r}
+kmeansTest$cluster[7]
+```
+Here is a representative person who falls into the third cluster. 
+```{r}
+sfoDf[7,]
+```
+
+Next, we tried an LCA.  First, we had to code 0 as 6 so that the LCA has the classes properly ordered. What this means is that a blank score in this case, we put equivalent to a not applicable score.  
+
+```{r}
+sfoDf$Q6A[sfoDf$Q6A == 0] = 6
+sfoDf$Q6B[sfoDf$Q6B == 0] = 6
+sfoDf$Q6C[sfoDf$Q6C == 0] = 6
+sfoDf$Q6D[sfoDf$Q6D == 0] = 6
+sfoDf$Q6E[sfoDf$Q6E == 0] = 6
+sfoDf$Q6F[sfoDf$Q6F == 0] = 6
+sfoDf$Q6G[sfoDf$Q6G == 0] = 6
+sfoDf$Q6H[sfoDf$Q6H == 0] = 6
+sfoDf$Q6I[sfoDf$Q6I == 0] = 6
+sfoDf$Q6J[sfoDf$Q6J == 0] = 6
+sfoDf$Q6K[sfoDf$Q6K == 0] = 6
+sfoDf$Q6L[sfoDf$Q6L == 0] = 6
+sfoDf$Q6M[sfoDf$Q6M == 0] = 6
+sfoDf$Q6N[sfoDf$Q6N == 0] = 6
+
+lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
+
+lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000)
+```
+For LCA, we tried, 3, 4, and 5 groups of classes.  Five classes has the lowest BIC over 3 and 4 classes, so we will choose 5 classes for our analysis.  As you can see from the output above, approximately 20% of the population falls into class 1, approximately 29% of the population falls within class 2, approximately 7.3% of the population falls within class 3, approximately 19% of the population falls within class 4, and approximately 25% of the population falls within class 5.  Generally, class 1 votes a 6 on the satisfaction with SFO, class 2 votes a 4 on the satisfaction with SFO, class 3 votes a 5 on the satisfaction with SFO, classes 4 and 5 generally votes a 3 on the scale.  These classes are important to the business executives because 29% of the respondents are likely to be satisfied at a level 4 or above with SFO.  7.3% are likely to respond with a 5 on the satisfaction scale, and 46% are likely to vote a 3 on a satisfaction scale.  This means that whereas 46% of the responses are a likely to be a 3, there is definite room for improvement at SFO.  
+
+The plots are very crowded, but on a larger screen, we can see similar trends. 
+```{r}
+plot(lcaAllqsClasses)
+```
+
+
+# Part A
+## Question 1
+Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.
+
+## Question 2
+The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport (see Question 6 in the data directory). The executives want you to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
+
+## Question 3 
+Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
+
+# Part B
+The SFO executives feel that additional insights can be gained from the customer satisfaction survey dataset. Based on your prior EDA deliverable and the topics we have discussed in class, develop an additional research question and execute a plan to evaluate it with these data using a method we covered this semester. Provide an appropriate explanation of your method of choice and how it applies to your question. If formal hypotheses are tested, clearly explain the results of these tests. If the method is more descriptive or data-driven, define how the results are evaluated, and provide sufficient output and data visuals to communicate the outcome. You don’t need to fish for a “significant” finding here; even null or unexpected results can be useful if the hypothesis is reasonable.

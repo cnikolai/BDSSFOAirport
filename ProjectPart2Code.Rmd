@@ -1,0 +1,245 @@
+---
+title: "Project"
+author: "Cynthia Nikolai", "Ben Corriveau","Avisek Choudhury"
+date: "11/6/2020"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE}
+#clear the environment
+rm(list=ls())
+
+#load the required libraries
+library(tidyverse)
+library(haven)
+library(tidyr)
+library(psych)
+library(jsonlite)
+library(ggcorrplot)
+library(mirt)
+library(factoextra)
+library(cluster)
+library(mclust)
+library(NbClust)
+library(fclust)
+library(poLCA)
+```
+
+```{r}
+#read in the data
+sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
+head(sfoDf)
+```
+
+First, we drop the rows with NAs in them.  
+```{r}
+#select question 6 questions
+sfoDf <- sfoDf %>% select(RESPNUM, Q6A:Q6N, Q17, Q18, Q19) %>% drop_na()
+head(sfoDf)
+```
+```{r}
+#change the wide format into a long format
+# data_long <- gather(sfoDf, Q6A, Score, factor_key=TRUE)
+# data_long
+
+#code a 6 as a -1, so that the scores are ordered  
+sfoDf$Q6A[sfoDf$Q6A == 6] = -1
+sfoDf$Q6B[sfoDf$Q6B == 6] = -1
+sfoDf$Q6C[sfoDf$Q6C == 6] = -1
+sfoDf$Q6D[sfoDf$Q6D == 6] = -1
+sfoDf$Q6E[sfoDf$Q6E == 6] = -1
+sfoDf$Q6F[sfoDf$Q6F == 6] = -1
+sfoDf$Q6G[sfoDf$Q6G == 6] = -1
+sfoDf$Q6H[sfoDf$Q6H == 6] = -1
+sfoDf$Q6I[sfoDf$Q6I == 6] = -1
+sfoDf$Q6J[sfoDf$Q6J == 6] = -1
+sfoDf$Q6K[sfoDf$Q6K == 6] = -1
+sfoDf$Q6L[sfoDf$Q6L == 6] = -1
+sfoDf$Q6M[sfoDf$Q6M == 6] = -1
+sfoDf$Q6N[sfoDf$Q6N == 6] = -1
+
+# Categorize the questions into a factor scale so that we can use IRT and clustering methods to analysis the data
+Questions <- c("Q6A","Q6B","Q6C","Q6D","Q6E","Q6F","Q6G","Q6H","Q6I","Q6J","Q6K","Q6L","Q6M","Q6N")
+# for (q in Questions) {
+#   sfoDf$q[sfoDf$q == 0 | sfoDf$q == 6] = "zero"
+#   sfoDf$q[sfoDf$q == 1] = "one"
+#   sfoDf$q[sfoDf$q == 2] = "two"
+#   sfoDf$q[sfoDf$q == 3] = "three"
+#   sfoDf$q[sfoDf$q == 4] = "four"
+#   sfoDf$q[sfoDf$q == 5] = "five"
+# }
+
+# # order the factor levels
+# for (q in Questions) {
+#   sfoDf = factor(sfoDf$q,
+#                     levels=c("zero", "one", "two","three","four","five"))
+# }
+# 
+# XT = xtabs(~ Category + Instructor,
+#            data = Data)
+# 
+# #change factors into numerics for use in mirt calculations
+# data <- lapply(sfoDf[sapply(sfoDf, is.factor)], as.numeric)
+```
+Let's look at a pairwise correlation of the data.  
+```{r}
+sfoDf %>%
+  cor(., use="pairwise.complete") %>% 
+  ggcorrplot()
+```
+It looks like questions (A, B, and C), (D, E, F, and N), (G and H), (I, J, K, L, and M) are positively correlated.   
+
+```{r}
+start.time <- Sys.time()
+# do the analysis
+#irt4fact <-mirt(sfoDf,
+#    4, #entering a number here carries out exploratory IRT with the given number of factors.
+#    itemtype = "graded", #default, graded response model
+#    method="QMCEM")
+end.time <- Sys.time()
+total.time <- end.time - start.time
+total.time
+#saving the results to a file
+#save(irt4fact,file="irt4factresults.Rdata")
+load("irt4factresults.Rdata")
+summary(irt2fact)
+```
+
+```{r}
+confirmatoryModel = mirt.model('
+   F1 = 2,3,4,5,6,7,15, 
+   F2 = 10,11,12,13,14
+   F3 = 8,9
+   ')
+
+irtconfimatory <- mirt(sfoDf, model = confirmatoryModel, 
+       itemtype = "graded", verbose = FALSE)
+summary(irtconfimatory)
+```
+```{r}
+set.seed(1842)
+
+# try a bunch of methods in a loop
+lista.index = c("kl","ch","gap","cindex", "db", "silhouette", "duda","pseudot2","beale")
+
+clusters <- vector(mode = "list", length = length(lista.index))
+start.time <- Sys.time()
+for (d in lista.index) {
+  nb = NbClust(sfoDf, distance = "euclidean",
+             min.nc = 2, max.nc = 8,
+             method = "kmeans", index=d)
+  res<-data.frame(cbind(index = d, best_cluster=nb$Best.nc))
+  print(res)
+  append(clusters,res)
+print(paste0("index ", d, " complete"))
+}
+end.time <- Sys.time()
+total.time <- end.time - start.time
+total.time
+
+```
+```{r}
+lista.index = c("kl","ch","gap","cindex", "db", "silhouette", "duda","pseudot2","beale")
+
+library(parallel)
+start.time2 <- Sys.time()
+best.clusters<-mclapply(lista.index, function(d) {nb = NbClust(sfoDf, distance = "euclidean",
+             min.nc = 2, max.nc = 8, 
+             method = "kmeans", index =d)
+res<-data.frame(cbind(index = d, best_cluster=nb$Best.nc[1]))
+return(res)
+print(paste0("index ", d, " complete"))
+}, mc.cores=1)
+end.time2 <- Sys.time()
+time.taken2 <- end.time2 - start.time2
+time.taken2
+```
+
+
+```{r}
+best.clusters
+```
+The best number of clusters is three.  Let's see what these look like. 
+
+```{r}
+kmeansTest = kmeans(x = na.omit(sfoDf), 
+            centers = 3)
+
+fviz_cluster(kmeansTest, sfoDf)
+```
+# Let’s try partitioning around mediods (PAM).#takes hours to run. 
+```{r}
+#lista.index = c("kl","ch","gap","cindex", "db", "silhouette", "duda","pseudot2","beale")
+lista.index = c("gap")
+
+
+start.time4 <- Sys.time()
+#for (d in lista.index) {
+# sfoDf %>% 
+#     fviz_nbclust(x = ., FUNcluster = pam, method = "gap")
+end.time4 <- Sys.time()
+time.taken4 <- end.time4 - start.time4
+time.taken4
+```
+
+```{r}
+pamTest = pam(x = sfoDf, 
+                    k = 3)
+
+fviz_cluster(pamTest, clusterData)
+```
+
+
+```{r}
+lcaFormula = cbind(Q17, Q18, Q19) ~ 1
+
+lca3Classes = poLCA(lcaFormula, sfoDf, nclass = 3, maxiter = 10000)
+```
+
+
+```{r}
+plot(lca3Classes)
+```
+```{r}
+sfoDf$Q6A[sfoDf$Q6A == -1 | sfoDf$Q6A == 0 ] = 6
+sfoDf$Q6B[sfoDf$Q6B == -1 | sfoDf$Q6B == 0 ] = 6
+sfoDf$Q6C[sfoDf$Q6C == -1 | sfoDf$Q6C == 0] = 6
+sfoDf$Q6D[sfoDf$Q6D == -1 | sfoDf$Q6D == 0] = 6
+sfoDf$Q6E[sfoDf$Q6E == -1 | sfoDf$Q6E == 0] = 6
+sfoDf$Q6F[sfoDf$Q6F == -1 | sfoDf$Q6F == 0] = 6
+sfoDf$Q6G[sfoDf$Q6G == -1 | sfoDf$Q6G == 0] = 6
+sfoDf$Q6H[sfoDf$Q6H == -1 | sfoDf$Q6H == 0] = 6
+sfoDf$Q6I[sfoDf$Q6I == -1 | sfoDf$Q6I == 0] = 6
+sfoDf$Q6J[sfoDf$Q6J == -1 | sfoDf$Q6J == 0] = 6
+sfoDf$Q6K[sfoDf$Q6K == -1 | sfoDf$Q6K == 0] = 6
+sfoDf$Q6L[sfoDf$Q6L == -1 | sfoDf$Q6L == 0] = 6
+sfoDf$Q6M[sfoDf$Q6M == -1 | sfoDf$Q6M == 0] = 6
+sfoDf$Q6N[sfoDf$Q6N == -1 | sfoDf$Q6N == 0] = 6
+
+lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N, Q17, Q18, Q19) ~ 1
+
+lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000)
+```
+```{r}
+plot(lcaAllqsClasses)
+```
+
+
+# Part A
+## Question 1
+Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.
+
+## Question 2
+The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport (see Question 6 in the data directory). The executives want you to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
+
+## Question 3 
+Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
+
+# Part B
+The SFO executives feel that additional insights can be gained from the customer satisfaction survey dataset. Based on your prior EDA deliverable and the topics we have discussed in class, develop an additional research question and execute a plan to evaluate it with these data using a method we covered this semester. Provide an appropriate explanation of your method of choice and how it applies to your question. If formal hypotheses are tested, clearly explain the results of these tests. If the method is more descriptive or data-driven, define how the results are evaluated, and provide sufficient output and data visuals to communicate the outcome. You don’t need to fish for a “significant” finding here; even null or unexpected results can be useful if the hypothesis is reasonable.

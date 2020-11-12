@@ -1,6 +1,6 @@
 ---
 title: "Project"
-author: "Cynthia Nikolai", "Ben Corriveau","Avisek Choudhury", "Tyler Smith"
+author: "Cynthia Nikolai", "Ben Corriveau","Avisek Choudhury"
 date: "11/6/2020"
 output:
   html_document:
@@ -12,8 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
-
 Describe the underlying SFO data and research questions. (1-2 paragraphs)
+
 ## Part A
 ### Hypothesis/Hypotheses
 Mention overall research questions posed by executives. Mention not just the analysis you will do, but any predicted outcomes you may have. (1-3 paragraphs, bullet points, etc)
