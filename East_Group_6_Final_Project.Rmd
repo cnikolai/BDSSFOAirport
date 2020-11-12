@@ -16,48 +16,66 @@ Marketing executives developed a survey and administered it to customers over th
 
 ## Part A
 ### Hypothesis/Hypotheses
-### Question 1
+#### Question 1
 Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.  
 
 We are theorizing that there will be distinct patterns that emerge in the deomgraphic data, but are yet unsure of what they will show.
 
-### Question 2
+#### Question 2
 The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport (see Question 6 in the data directory). The executives want us to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
 
 Based on the fact that the questions fall into distinct categories, we are theorzing that there are distinct underlying factors that influence overall satisfaction.  What we do not know though is which are the most/least important areas of the airport as it pertains to overall satisfaction.
 
-### Question 3
+#### Question 3
 Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
 
 We strongly believe that the free response questions will align with the overall satisfaction scores.
 
-#### Data Description/EDA
+### Data Description/EDA
 As mentioned above, our data set had 3,234 responses on 100 variables  Of those 100 variables, we were only really interested in the Question 6 responses, and comments (15 columns).  Plus, we are including the demographic information: Age Group, Gender, and Income.  To ensure we had a good sample size, we reviewed missingness for each column.  We were pleased to see that all of the Question 6 responses had fewer than 7% missing data.
 
-#### Analysis plan
-Detail the specific analyses that will address these research questions. (1-2 paragraphs, or numbered/bulleted list)
+### Analysis plan
+#### Question 1
+For the first question, we plan to start by visualizing the relationship between overall satisfactin and the various demographic groups.  We should be able to develop initial observations that we can test further with a regression model.  The regression model should be able to definitively prove/disprove our initial theories based on the visuals.
 
-#### Results
-Run models - but do not necessarily post all code chunks and all outputs. Organize and summarize the most crucial results. Describe the analytic results (regression coefficients, p-values, comparison of test error rates, interpretation of clusters, benefit of multiple imputation, interpretation of sentiment and topics, etc) of the various analyses you ran. Interpret the meaning of the result. (length open)
+#### Question 2
+For the second question, we feel that the best approach will be factor analysis.  This should allow us to see if there are commonalities in the reponses, and from there determine which questions appear to be the "most important," or at least most indicative of positive overall satisfaction.
 
-#### Discussion
-Relate the results directly to the prompts posed by the SFO executives. Did you address the research questions? Did the results match your expectations, or did you find something different from you were expecting? What are the strengths of your chosen analysis, and what are the potential limitations of the method used or issues in the data?
+#### Question 3
+For the third question, we believe that sentiment analysis will be the best way to gather insight from free-form responses.  We should easily be able to determine if the overall sentiment matches the overall numerical responses.
+
+### Results
+#### Question 1
+Based on our demographic analysis, we see that only 4 of the demographic categories have a statistically significant impact on the overall rating: `GenderMale`, `Income$50,000-$100,00`, `Income$100,001-$150,000`, and `IncomeOver $150,000`.  Each of these 4 categories appears to have an overall negative influence on the satisfaction score.  What this tells us that, in general, Men tend to have more negative opinions of the airport.  Also, the overall opinion of SFO seems to decline as a person's income increases.
+
+#### Question 2
+Overall, we have found that though there seem to be four total "themes", there are only two "themes" that have a noticeable relationship to overall satisfaction:
+1 - Food services and shopping
+2 - Navigational signs and moving walkways
+
+Of those, it would seem that the navigational signs and moving walkways have a higher correlation with overall satisfaction.  From this, we conclude that people are often in a hurry and prioritize the ability to get to their get quickly and easily.  Also somewhat important are the availble food services and shops.  
+
+#### Question 3
+
+
+### Discussion
+
 
 # Part B
-##Research Question and Hypothesis
-Briefly describe your own general research question and specific hypothesis behind it.
+### Research Question and Hypothesis
+
 
 #### EDA
-Describe any key variabls for your research question that were not used in Part A, and/or summarize EDA findings from Part A.
+
 
 #### Analysis Plan
-Describe the method chosen to address your own research question and why.
+
 
 #### Results
-Same as descibed in Part A - summarize important results and how the chosen method is evaluated, and interpret findings.
+
 
 #### Discussion
-Relate results back to your broader research question.
+
 
 # Appendix
 
@@ -79,6 +97,7 @@ library(sentimentr)
 library(lexicon)
 library(magrittr)
 library(tidyr)
+library(stm)
 
 #Read the data set
 sfoDf <- read_delim('/Users/benjamincorriveau/OneDrive/School/BehavioralDS/SFO_survey_withText.txt', delim="\t")
@@ -484,4 +503,92 @@ head(avgSentIncome, n=20)
 ```
 
 #### Part B
+### Topic Models
+
+Let's try topic models to find out the themes. 
+
+```{r, message=FALSE, warning=FALSE}
+
+feedbackText = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf)
+```
+
+We might need to do some encoding conversion, remove non-graphical characters within the data, and remove that offending character. Let's check for encoding in the dataset.
+
+```{r, message=FALSE, warning=FALSE}
+rvest::guess_encoding(sfoDf$Q7_text_All)
+```
+
+ We see the word “airport” in a lot of the entries. We don’t want this messing with my topics on down the line, so let’s see how much it is around.
+ 
+```{r, message=FALSE, warning=FALSE}
+#Convert the comments to all uppercase
+sfoDf$Q7_text_All <- toupper(sfoDf$Q7_text_All)
+#Find the frequency of airport
+nrow(sfoDf[grepl("AIRPORT", sfoDf$Q7_text_All), ])
+```
+
+We see 'airport' is used almost 500 times. We can add the word 'airport' in the stopwords list. In addition to custom stopwords, we'll also like to include the SMART words again (it is the default) and the english stopwords. 
+
+
+```{r, message=FALSE, warning=FALSE}
+feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf, 
+                           onlycharacter = TRUE,
+                           customstopwords = c("airport", 
+                                               tm::stopwords("SMART"), 
+                                               tm::stopwords("en")))
+
+feedbackTextPrep = prepDocuments(documents = feedbackTextProcess$documents, 
+                               vocab = feedbackTextProcess$vocab,
+                               meta = feedbackTextProcess$meta)
+```
+
+The ` stm` package has some pretty nice facilities for determining a number of topics. We can try topics from 2 to 5 and see what we get.
+
+```{r , message=FALSE, warning=FALSE}
+kTest = searchK(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextProcess$vocab, 
+             K = c(2, 3, 4, 5), verbose = FALSE)
+
+plot(kTest)
+```
+
+Looking at the residual and Semantic Coherence we think 4 topics is the best to go for. With our 4 topics, we can start our actual model.
+
+```{r , message=FALSE, warning=FALSE}
+topics4 = stm(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextPrep$vocab, 
+             K = 4, verbose = FALSE)
+```
+If we plot the stm result, we get the proportional prevalence of the topics, with some keywords for each topic.
+
+
+```{r , message=FALSE, warning=FALSE}
+plot(topics4)
+```
+
+Additional functions can help to understand the words that fall into each topic, which assist in identifying and labeling the topics. 
+
+```{r , message=FALSE, warning=FALSE}
+labelTopics(topics4)
+```
+
+From the plot of the topics and from the example words we can conclude that - 
+
+* Topic 1 is likely expressing about the directions and signs in the SFO airport 
+* Topic 2 is likely expressing about the small display and lack of information displayed. 
+* Topic 3 likely expressing about the customs and security inefficiency and long waiting time. 
+* Topic 4 likely expressing about the restaurants availability and food choices. 
+
+We can look at statements that have a high probability of being associated with each topic here. This presents documents that are representative of each topic.
+
+```{r , message=FALSE, warning=FALSE}
+findThoughts(topics4, texts = feedbackTextPrep$meta$Q7_text_All , n = 1)
+```
+
+We can see the statements are along the expectations we mentioned earlier by each topic.
+
+
+
 
