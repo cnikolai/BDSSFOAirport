@@ -1,0 +1,412 @@
+---
+title: "<center>Behavioral Data Science<br>Project - Part II</center>"
+author: "<center>Avisek Choudhury<br>Ben Corriveau<br>Cindy Nikolai</center>"
+date: "<center>11/06/2020</center>"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Part A - Question 3
+
+Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
+ 
+
+```{r readData, message=FALSE, warning=FALSE, error=TRUE}
+#Import the libraries
+library(tidyverse)
+library(haven)
+library(plotly)
+library(reshape2)
+library(tidytext)
+library(wordcloud2)
+library(sentimentr) 
+library(lexicon)
+library(magrittr)
+library(tidyr)
+
+#Read the data set
+sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
+head(sfoDf)
+```
+
+
+```{r countingNA, message=FALSE, warning=FALSE, error=TRUE }
+#Count the NA or missing Rows for each columns
+sapply(sfoDf, function(x) sum(is.na(x)))
+```
+
+We see lot of columns with huge no of missing values. Let's check the columns with more than 50% values are missing.
+
+```{r countingNA50, message=FALSE, warning=FALSE, error=TRUE }
+#Count the NA or missing Rows for each columns
+unlist(sapply(sfoDf, function(x) { 
+  if (sum(is.na(x)) > length(x)* 0.5)  
+    return (sum(is.na(x))) 
+  }))
+```
+
+So we see there are 40 columns out of 101 columns has more than 50% missing values.
+
+Now convert the columns for age, income and sex.
+
+```{r , message=FALSE, warning=FALSE, error=TRUE}
+#Convert the Sex
+sfoDf['Gender'] <- ifelse(sfoDf$Q18 == 1, "Male",
+                          ifelse(sfoDf$Q18 == 2, "Female", "Blank"))
+#Convert the Age Group column
+sfoDf['Age_Group'] <- ifelse(sfoDf$Q17 == 1, "Under 18", 
+       ifelse(sfoDf$Q17 == 2, "18-24", 
+              ifelse(sfoDf$Q17 == 3, "25-34", 
+                     ifelse(sfoDf$Q17 == 4, "35-44", 
+                            ifelse(sfoDf$Q17 == 5, "45-54", 
+                                   ifelse(sfoDf$Q17 == 6, "55-64", 
+                                          ifelse(sfoDf$Q17 == 7, "65 and Over",
+                                                ifelse(sfoDf$Q17 == 8, "Don't Know/Refused", 
+                                                       ifelse(sfoDf$Q17 == 0, "Blank", "NA")))))))))
+
+#Convert the Income Column
+sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000", 
+                          ifelse(sfoDf$Q19 == 2, "$50,000-$100,00",
+                                 ifelse(sfoDf$Q19 == 3, "$100,001-$150,000",
+                                        ifelse(sfoDf$Q19 == 4, "Over $150,000",
+                                               ifelse(sfoDf$Q19 == 5, "Other", "Blank")))))
+```
+
+For sentiment analysis let's have a look at the combined comment column in the given dataset.
+
+```{r , message=FALSE, warning=FALSE, error=TRUE}
+#Comment Column
+sfoDf$Q7_text_All %>% 
+  na.omit %>% 
+  head(10)
+```
+
+Let's remove the forward slash and hyphens from the comments and replace that with blank space.
+
+```{r, message=FALSE, warning=FALSE, error=TRUE}
+#Remove the Slash
+sfoDf$Q7_text_All <- gsub(pattern = "/", 
+                          replacement = " ", 
+                          sfoDf$Q7_text_All)
+#Remove the hyphens
+sfoDf$Q7_text_All <- gsub(pattern = "-", 
+                          replacement = " ", 
+                          sfoDf$Q7_text_All)
+#Verify the data
+sfoDf$Q7_text_All %>% 
+  na.omit %>% 
+  head(10)
+```
+
+Let's check the count of distinct words used by each age group. We can remove the stop words before do the count.
+
+```{r, message=FALSE, warning=FALSE}
+#Word Count by each Inmate
+wordDf <- sfoDf %>% 
+  select(Q7_text_All, Q17, Age_Group) %>% 
+   rename(Age = Q17,
+         Comments = Q7_text_All) %>% 
+  unnest_tokens(word, Comments) %>% 
+  anti_join(stop_words) %>% 
+  na.omit() %>% 
+  group_by(Age_Group, Age, word) %>% 
+  summarise(count = n())
+#Check the data set
+head(wordDf, n = 20)
+```
+
+Let's count positive and negative words for each age group and calculate the sentiment.
+
+```{r , message=FALSE, warning=FALSE}
+#Count positive and negative words
+wordSent_bing <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Age_Group, Age, sentiment) %>% 
+  count(sentiment)  %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+#Print the dataset
+head(wordSent_bing, n= 10)
+```
+
+Let's plot the positive and negative sentient count for each age group .
+
+```{r , message=FALSE, warning=FALSE}
+#Generate the Dataset for the Plot
+plotDf <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Age_Group, Age, sentiment) %>% 
+  count(sentiment) %>% 
+  rename(count = n)
+#Generate the Barplot for the Positive/Negative Sentiment
+#For Each Age Group
+ggplot(plotDf, aes(Age_Group), ylim(-30:30)) + 
+geom_bar(data = subset(plotDf, sentiment == "positive"), 
+   aes(y = count, fill = sentiment), stat = "identity", position = "dodge") +
+geom_bar(data = subset(plotDf, sentiment == "negative"), 
+   aes(y = -count, fill = sentiment), stat = "identity", position = "dodge") + 
+geom_hline(yintercept = 0,colour = "grey90") + 
+  #Now Add the Tect to it
+geom_text(data = subset(plotDf, sentiment == "positive"), 
+      aes(Age_Group, count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = 1.5, size=4) +
+geom_text(data = subset(plotDf, sentiment == "negative"), 
+      aes(Age_Group, -count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = -.5, size=4) +
+    coord_cartesian(ylim = c(-30, 30))
+
+```
+We can see across all age range the negative sentiment is slightly higher than the positive sentiment.
+
+Now instead of ` bing` we can use ` affin` which assigns a value positive/negative to each word and calculate the average sentiment for age group we have.
+
+```{r, message=FALSE, warning=FALSE}
+#Calculate Average sentiment for each inmate
+avgSentAgeGrp <- wordDf %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(Age_Group) %>% 
+  summarise( totalWords = sum(count), sentSum = sum(value)) %>% 
+  mutate(Avg_Sentiment = sentSum / totalWords)
+#Print the dataset
+head(avgSentAgeGrp, n=20)
+```
+
+Here also we see the average sentiment is negative almost all age range except the population under 18.
+
+Now let's analyze the sentiments by gender.
+
+```{r, message=FALSE, warning=FALSE, error=TRUE}
+#Word Count by each Inmate
+wordDf <- sfoDf %>% 
+  select(Gender,  Q7_text_All) %>% 
+   rename(Comments = Q7_text_All) %>% 
+  unnest_tokens(word, Comments) %>% 
+  anti_join(stop_words) %>% 
+  na.omit() %>% 
+  group_by(Gender, word) %>% 
+  summarise(count = n())
+#Check the data set
+head(wordDf, n = 20)
+```
+
+Let's count positive and negative words for each sex and calculate the sentiment.
+
+```{r , message=FALSE, warning=FALSE}
+#Count positive and negative words
+wordSent_bing <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Gender, sentiment) %>% 
+  count(sentiment)  %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+#Print the dataset
+head(wordSent_bing, n= 10)
+```
+
+The sentiment is negative for both males and females. Let's plot the data we generated above.
+
+```{r , message=FALSE, warning=FALSE}
+#Generate the Dataset for the Plot
+plotDf <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Gender, sentiment) %>% 
+  count(sentiment) %>% 
+  rename(count = n)
+#Generate the Barplot for the Positive/Negative Sentiment
+#For Each Age Group
+ggplot(plotDf, aes(Gender), ylim(-20:20)) + 
+geom_bar(data = subset(plotDf, sentiment == "positive"), 
+   aes(y = count, fill = sentiment), stat = "identity", position = "dodge") +
+geom_bar(data = subset(plotDf, sentiment == "negative"), 
+   aes(y = -count, fill = sentiment), stat = "identity", position = "dodge") + 
+geom_hline(yintercept = 0,colour = "grey90") + 
+  #Now Add the Tect to it
+geom_text(data = subset(plotDf, sentiment == "positive"), 
+      aes(Gender, count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = 1.5, size=4) +
+geom_text(data = subset(plotDf, sentiment == "negative"), 
+      aes(Gender, -count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = -.5, size=4) +
+    coord_cartesian(ylim = c(-20, 20))
+```
+
+Let's use ` affin` again and calculate the average sentiment for each sex.
+
+```{r, message=FALSE, warning=FALSE}
+#Calculate Average sentiment for each inmate
+avgSentSex <- wordDf %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(Gender) %>% 
+  summarise( totalWords = sum(count), sentSum = sum(value)) %>% 
+  mutate(Avg_Sentiment = sentSum / totalWords)
+#Print the dataset
+head(avgSentSex, n=20)
+```
+
+
+
+Let's check the count of distinct words used by each income group and remove the stop words before do the count.
+
+```{r, message=FALSE, warning=FALSE}
+#Word Count by each Inmate
+wordDf <- sfoDf %>% 
+  select(Q7_text_All, Income) %>% 
+   rename(Comments = Q7_text_All) %>% 
+  unnest_tokens(word, Comments) %>% 
+  anti_join(stop_words) %>% 
+  na.omit() %>% 
+  group_by(Income, word) %>% 
+  summarise(count = n())
+#Check the data set
+head(wordDf, n = 20)
+```
+
+Let's count positive and negative words for each income group and calculate the sentiment.
+
+```{r , message=FALSE, warning=FALSE}
+#Count positive and negative words
+wordSent_bing <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Income, sentiment) %>% 
+  count(sentiment)  %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+#Print the dataset
+head(wordSent_bing, n= 10)
+```
+
+The sentiment is dominantly negative for all income group.
+
+We can plot this data as well.
+
+```{r , message=FALSE, warning=FALSE}
+#Generate the Dataset for the Plot
+plotDf <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Income, sentiment) %>% 
+  count(sentiment) %>% 
+  rename(count = n)
+#Generate the Barplot for the Positive/Negative Sentiment
+#For Each Age Group
+ggplot(plotDf, aes(Income), ylim(-20:20)) + 
+geom_bar(data = subset(plotDf, sentiment == "positive"), 
+   aes(y = count, fill = sentiment), stat = "identity", position = "dodge") +
+geom_bar(data = subset(plotDf, sentiment == "negative"), 
+   aes(y = -count, fill = sentiment), stat = "identity", position = "dodge") + 
+geom_hline(yintercept = 0,colour = "grey90") + 
+  #Now Add the Tect to it
+geom_text(data = subset(plotDf, sentiment == "positive"), 
+      aes(Income, count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = 1.5, size=4) +
+geom_text(data = subset(plotDf, sentiment == "negative"), 
+      aes(Income, -count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = -.5, size=4) +
+    coord_cartesian(ylim = c(-20, 20))
+
+```
+
+We can use ` affin` again and calculate the average sentiment for all income groups.
+
+```{r, message=FALSE, warning=FALSE}
+#Calculate Average sentiment for each inmate
+avgSentIncome <- wordDf %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(Income) %>% 
+  summarise( totalWords = sum(count), sentSum = sum(value)) %>% 
+  mutate(sentiment = sentSum / totalWords)
+#Print the dataset
+head(avgSentIncome, n=20)
+```
+
+### Topic Models
+
+Let's try topic models to find out the themes. 
+
+```{r, message=FALSE, warning=FALSE}
+library(stm)
+
+feedbackText = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf)
+```
+
+We might need to do some encoding conversion, remove non-graphical characters within the data, and remove that offending character. Let's check for encoding in the dataset.
+
+```{r, message=FALSE, warning=FALSE}
+rvest::guess_encoding(sfoDf$Q7_text_All)
+```
+
+ We see the word “airport” in a lot of the entries. We don’t want this messing with my topics on down the line, so let’s see how much it is around.
+ 
+```{r, message=FALSE, warning=FALSE}
+#Convert the comments to all uppercase
+sfoDf$Q7_text_All <- toupper(sfoDf$Q7_text_All)
+#Find the frequency of airport
+nrow(sfoDf[grepl("AIRPORT", sfoDf$Q7_text_All), ])
+```
+
+We see 'airport' is used almost 500 times. We can add the word 'airport' in the stopwords list. In addition to custom stopwords, we'll also like to include the SMART words again (it is the default) and the english stopwords. 
+
+
+```{r, message=FALSE, warning=FALSE}
+feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf, 
+                           onlycharacter = TRUE,
+                           customstopwords = c("airport", 
+                                               tm::stopwords("SMART"), 
+                                               tm::stopwords("en")))
+
+feedbackTextPrep = prepDocuments(documents = feedbackTextProcess$documents, 
+                               vocab = feedbackTextProcess$vocab,
+                               meta = feedbackTextProcess$meta)
+```
+
+The ` stm` package has some pretty nice facilities for determining a number of topics. We can try topics from 2 to 5 and see what we get.
+
+```{r , message=FALSE, warning=FALSE}
+kTest = searchK(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextProcess$vocab, 
+             K = c(2, 3, 4, 5), verbose = FALSE)
+
+plot(kTest)
+```
+
+Looking at the residual and Semantic Coherence we think 4 topics is the best to go for. With our 4 topics, we can start our actual model.
+
+```{r , message=FALSE, warning=FALSE}
+topics4 = stm(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextPrep$vocab, 
+             K = 4, verbose = FALSE)
+```
+If we plot the stm result, we get the proportional prevalence of the topics, with some keywords for each topic.
+
+
+```{r , message=FALSE, warning=FALSE}
+plot(topics4)
+```
+
+Additional functions can help to understand the words that fall into each topic, which assist in identifying and labeling the topics. 
+
+```{r , message=FALSE, warning=FALSE}
+labelTopics(topics4)
+```
+
+From the plot of the topics and from the example words we can conclude that - 
+
+* Topic 1 is likely expressing about the directions and signs in the SFO airport 
+* Topic 2 is likely expressing about the small display and lack of information displayed. 
+* Topic 3 likely expressing about the customs and security inefficiency and long waiting time. 
+* Topic 4 likely expressing about the restaurants availability and food choices. 
+
+We can look at statements that have a high probability of being associated with each topic here. This presents documents that are representative of each topic.
+
+```{r , message=FALSE, warning=FALSE}
+findThoughts(topics4, texts = feedbackTextPrep$meta$Q7_text_All , n = 1)
+```
+
+We can see the statements are along the expectations we mentioned earlier by each topic.
+
+
+

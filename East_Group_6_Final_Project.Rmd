@@ -1,0 +1,594 @@
+---
+title: "<center>Behavioral Data Science<br>Project - Group 6</center>"
+author: "<center>Avisek Choudhury<br>Ben Corriveau<br>Cindy Nikolai</center>"
+date: "<center>11/06/2020</center>"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+Airport executives and state and local officials are curious about customer satisfaction at San Francisco International Airport. Business and tourist travelers are a huge source of revenue for the city. SFO is in a prime location relative to other west-coast cities, and it is well situated as a long-term layout spot for international travel to Asia. Because of this, identifying current strengths of the airport and areas for improvement are critical to increasing traffic and revenue.
+
+Marketing executives developed a survey and administered it to customers over the previous year. SFO invested a lot of time and resources in collected comprehensive data for 3,234 customers on 100 variables. They have now hired us as their data science consultants to gain insights into these data. The SFO team is not well-versed in data science methodology, but they have a few key areas of interest for us to look into. 
+
+## Part A
+### Hypothesis/Hypotheses
+#### Question 1
+Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.  
+
+We are theorizing that there will be distinct patterns that emerge in the deomgraphic data, but are yet unsure of what they will show.
+
+#### Question 2
+The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport (see Question 6 in the data directory). The executives want us to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
+
+Based on the fact that the questions fall into distinct categories, we are theorzing that there are distinct underlying factors that influence overall satisfaction.  What we do not know though is which are the most/least important areas of the airport as it pertains to overall satisfaction.
+
+#### Question 3
+Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
+
+We strongly believe that the free response questions will align with the overall satisfaction scores.
+
+### Data Description/EDA
+As mentioned above, our data set had 3,234 responses on 100 variables  Of those 100 variables, we were only really interested in the Question 6 responses, and comments (15 columns).  Plus, we are including the demographic information: Age Group, Gender, and Income.  To ensure we had a good sample size, we reviewed missingness for each column.  We were pleased to see that all of the Question 6 responses had fewer than 7% missing data.
+
+### Analysis plan
+#### Question 1
+For the first question, we plan to start by visualizing the relationship between overall satisfactin and the various demographic groups.  We should be able to develop initial observations that we can test further with a regression model.  The regression model should be able to definitively prove/disprove our initial theories based on the visuals.
+
+#### Question 2
+For the second question, we feel that the best approach will be factor analysis.  This should allow us to see if there are commonalities in the reponses, and from there determine which questions appear to be the "most important," or at least most indicative of positive overall satisfaction.
+
+#### Question 3
+For the third question, we believe that sentiment analysis will be the best way to gather insight from free-form responses.  We should easily be able to determine if the overall sentiment matches the overall numerical responses.
+
+### Results
+#### Question 1
+Based on our demographic analysis, we see that only 4 of the demographic categories have a statistically significant impact on the overall rating: `GenderMale`, `Income$50,000-$100,00`, `Income$100,001-$150,000`, and `IncomeOver $150,000`.  Each of these 4 categories appears to have an overall negative influence on the satisfaction score.  What this tells us that, in general, Men tend to have more negative opinions of the airport.  Also, the overall opinion of SFO seems to decline as a person's income increases.
+
+#### Question 2
+Overall, we have found that though there seem to be four total "themes", there are only two "themes" that have a noticeable relationship to overall satisfaction:
+1 - Food services and shopping
+2 - Navigational signs and moving walkways
+
+Of those, it would seem that the navigational signs and moving walkways have a higher correlation with overall satisfaction.  From this, we conclude that people are often in a hurry and prioritize the ability to get to their get quickly and easily.  Also somewhat important are the availble food services and shops.  
+
+#### Question 3
+
+
+### Discussion
+
+
+# Part B
+### Research Question and Hypothesis
+
+
+#### EDA
+
+
+#### Analysis Plan
+
+
+#### Results
+
+
+#### Discussion
+
+
+# Appendix
+
+#### Load Data and Libraries
+```{r readData, message=FALSE, warning=FALSE, error=TRUE}
+#Import the libraries
+library(tidyverse)
+library(haven)
+library(plotly)
+library(reshape2)
+library(lmtest)
+library(lme4)
+library(psych)
+library(GPArotation)
+library(ggcorrplot)
+library(tidytext)
+library(wordcloud2)
+library(sentimentr) 
+library(lexicon)
+library(magrittr)
+library(tidyr)
+library(stm)
+
+#Read the data set
+sfoDf <- read_delim('/Users/benjamincorriveau/OneDrive/School/BehavioralDS/SFO_survey_withText.txt', delim="\t")
+```
+
+#### EDA 
+Let's get the percent of empyty rows for each column to get an idea of missingness.
+```{r countingNA, message=FALSE, warning=FALSE, error=TRUE }
+sapply(sfoDf, function(x) round(sum(is.na(x))/length(x),3))
+```
+
+We see lot of columns with huge no of missing values. Let's check the columns with more than 50% values are missing.
+```{r countingNA50, message=FALSE, warning=FALSE, error=TRUE }
+#Count the NA or missing Rows for each columns
+unlist(sapply(sfoDf, function(x) { 
+  if (sum(is.na(x)) > length(x)* 0.5)  
+    return (sum(is.na(x))) 
+  }))
+```
+
+So we see there are 40 columns out of 101 columns has more than 50% missing values.
+
+#### Research Question 1
+
+The first step is to convert the columns for age, income and sex into something easier to read.
+```{r , message=FALSE, warning=FALSE, error=TRUE}
+#Convert the Sex
+sfoDf['Gender'] <- ifelse(sfoDf$Q18 == 1, "Male",
+                          ifelse(sfoDf$Q18 == 2, "Female", "Blank"))
+#Convert the Age Group column
+sfoDf['Age_Group'] <- ifelse(sfoDf$Q17 == 1, "Under 18", 
+       ifelse(sfoDf$Q17 == 2, "18-24", 
+              ifelse(sfoDf$Q17 == 3, "25-34", 
+                     ifelse(sfoDf$Q17 == 4, "35-44", 
+                            ifelse(sfoDf$Q17 == 5, "45-54", 
+                                   ifelse(sfoDf$Q17 == 6, "55-64", 
+                                          ifelse(sfoDf$Q17 == 7, "65 and Over",
+                                                ifelse(sfoDf$Q17 == 8, "Don't Know/Refused", 
+                                                       ifelse(sfoDf$Q17 == 0, "Blank", "NA")))))))))
+
+#Convert the Income Column
+sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000", 
+                          ifelse(sfoDf$Q19 == 2, "$50,000-$100,00",
+                                 ifelse(sfoDf$Q19 == 3, "$100,001-$150,000",
+                                        ifelse(sfoDf$Q19 == 4, "Over $150,000",
+                                               ifelse(sfoDf$Q19 == 5, "Other", "Blank")))))
+```
+
+
+Let's take a look at satisfaction ratings (Question 6n) grouped by various attributes (gender, income, age, etc.)
+```{r}
+satisfaction_data <- sfoDf %>%
+  select('Gender','Age_Group','Income','Q6N') %>% 
+  melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
+  select(-'variable') %>% 
+  na.omit(.)
+
+satisfaction_data$Income <- factor(satisfaction_data$Income,levels = c('Under $50,000',"$50,000-$100,00","$100,001-$150,000","Over $150,000","Other","Blank"))
+
+satisfaction_data$Age_Group <- factor(satisfaction_data$Age_Group, levels = c( "Under 18","18-24","25-34","35-44","45-54","55-64","65 and Over","Don't Know/Refused","Blank", "NA"))
+```
+
+We will start by looking at responses grouped by Gender and Income
+```{r}
+ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Income)) + 
+  geom_bar(stat='count') +
+  facet_wrap(~Gender) + 
+  labs(title="Satisfaction Score by Gender/Income", x='Score', y='Count')
+```
+
+We can see that the most common response for "How does SFO Airport rate as a whole" was a 4, which is one step below the highest score.  Worth noting here is that while 6 is an option, it represents "Have never used or visited/not applicable" so we consider a 5 the highest score.  The largest number of respondents who gave SFO a 4 appear to have income within `$50,000 - $100,000`. This could be because they liked it best, or because they are the largest respondent group.  We also see that male respondents had a higher proportion of '3' responses than '5', the opposite being true for females.  We will want to test this theory later in a regression model.
+
+Now let's take a look at the responses grouped by Income and Age
+```{r}
+ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Age_Group)) + 
+  geom_bar(stat='count') +
+  facet_wrap(~Income) +
+  labs(title="Satisfaction Score by Income/Age", x='Score', y='Count')
+```
+We see a similar pattern in this data, with 4 being the most common response for all income levels.  
+
+Though we have a general idea of the distribution, we want to run a regression model to see if we see any kind of pattern.
+```{r}
+lm_score <- lm(Score ~ Gender + Age_Group + Income,data = satisfaction_data)
+summary(lm_score)
+```
+
+Based on this simple regression, we see that only 4 of the demographic categories have a statistically significant impact on the overall rating: `GenderMale`, `Income$50,000-$100,00`, `Income$100,001-$150,000`, and `IncomeOver $150,000`.  Each of these 4 categories appears to have an overall negative influence on the satisfaction score.
+
+
+#### Research Question 2
+
+To answer this question, we will conduct a factor analysis to see if patterns emerge.  We will need to look at the responses to all parts of Question 6:
+
+How does SFO rate on each of the following attributes? 
+  6a. Artwork and exhibitions
+  6b. Restaurants
+  6c. Retail shops and concessions
+  6d. Signs and directions inside SFO
+  6e. Escalators/elevators/moving walkways
+  6f. Information on screens/monitors
+  6g. Information booths (lower level near baggage claim) 
+  6h. Information booths (upper level – departure area) 
+  6i. Signs and directions on SFO airport roadways
+  6j. Airport parking facilities
+  6k. AirTrain
+  6l. Long term parking lot shuttle
+  6m. Airport rental car center
+  6n. SFO Airport as a whole
+
+```{r}
+short_survey <- sfoDf %>% 
+  select(Q6A:Q6N)
+```
+
+Let's take a look at a correlation plot to see if any patterns jump out.
+```{r}
+short_survey %>% 
+  cor(., use="complete.obs") %>% 
+  ggcorrplot(type = "lower")
+```
+Immediately we see that questions about the information booths (6H and 6G) are almost perfectly positively correlated, likely meaning the information booth quality is the same, regardless of its location.  We also see there is a string positive correlation among many of the travel and parking related responses (6J, 6K, 6L, 6M).
+
+What we see in the correlation plot leads us to think there may be some themes here, so we will do a more thorough factor analysis to see if this holds true.  To begin, we will see how many factors will be best to use.
+```{r}
+short_survey %>% 
+  nfactors()
+```
+From the data above, we see that either 3 or 4 factors will likely be best.  We will try both to see if there is a meaningful difference.
+```{r}
+surveyFA_3 <- short_survey %>% 
+  fa(., nfactors = 3, rotate = "promax")
+
+surveyFA_3$loadings
+```
+
+With 3 factors, we see that people who answered positively about shopping, navigational aides, and moving walkways (6A,6B,6C,6D,6E,6F) also tended to answer positively for the overall score (6N).  One interpretation of factor MR1 as people are often in a hurry to catch their flight and appreciate being able to move through the airport quickly.  Another option is that people are appreciative of the food and shopping.
+
+We also see in factor MR2 the same parking and transportation correlation we saw in the plot.  People who answered positively about the parking also did so about airport transportation services (6I,6J,6K,6L,6M).  However, positive responses in these questions did not appear to effect the overall score.
+
+Finally, we see that factor MR3 is the grouping of information booths we saw in the correlation plot.  Positive responses about either floor's information booth tended match positive responses for the other.  However, positive responses in these questions did not appear to effect the overall score.
+
+Next we will review 4 factors to see if any further patterns emerge.
+```{r}
+surveyFA_4 <- short_survey %>% 
+  fa(., nfactors = 4, rotate = "promax")
+
+surveyFA_4$loadings
+```
+
+We see mostly the same results here, but now the shopping, food, and navigational information responses are in different factors, with navigation and moving walkways (MR1) having a larger positive correlation with a positive overall score.  Food and shopping (MR4) also seems to be related to a positive overall score, but to a lesser extent.
+
+We see the same results for both factors MR2 (transportation and parking) and MR3 (information booths).
+
+With 4 factors, it becomes a bit more clear what most respondents seem to favor: clear navigational aides and moving walkways (MR1).  While shopping is also important, the priority for travelers seems to be ease/speed of navigating within the airport. 
+
+#### Research Question #3
+
+For sentiment analysis let's have a look at the combined comment column in the given dataset.
+
+```{r , message=FALSE, warning=FALSE, error=TRUE}
+#Comment Column
+sfoDf$Q7_text_All %>% 
+  na.omit %>% 
+  head(10)
+```
+
+Let's remove the forward slash and hyphens from the comments and replace that with blank space.
+
+```{r, message=FALSE, warning=FALSE, error=TRUE}
+#Remove the Slash
+sfoDf$Q7_text_All <- gsub(pattern = "/", 
+                          replacement = " ", 
+                          sfoDf$Q7_text_All)
+#Remove the hyphens
+sfoDf$Q7_text_All <- gsub(pattern = "-", 
+                          replacement = " ", 
+                          sfoDf$Q7_text_All)
+#Verify the data
+sfoDf$Q7_text_All %>% 
+  na.omit %>% 
+  head(10)
+```
+
+Let's check the count of distinct words used by each age group. We can remove the stop words before do the count.
+
+```{r, message=FALSE, warning=FALSE}
+#Word Count by each Inmate
+wordDf <- sfoDf %>% 
+  select(Q7_text_All, Q17, Age_Group) %>% 
+   rename(Age = Q17,
+         Comments = Q7_text_All) %>% 
+  unnest_tokens(word, Comments) %>% 
+  anti_join(stop_words) %>% 
+  na.omit() %>% 
+  group_by(Age_Group, Age, word) %>% 
+  summarise(count = n())
+#Check the data set
+head(wordDf, n = 20)
+```
+
+Let's count positive and negative words for each age group and calculate the sentiment.
+
+```{r , message=FALSE, warning=FALSE}
+#Count positive and negative words
+wordSent_bing <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Age_Group, Age, sentiment) %>% 
+  count(sentiment)  %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+#Print the dataset
+head(wordSent_bing, n= 10)
+```
+
+Let's plot the positive and negative sentient count for each age group .
+
+```{r , message=FALSE, warning=FALSE}
+#Generate the Dataset for the Plot
+plotDf <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Age_Group, Age, sentiment) %>% 
+  count(sentiment) %>% 
+  rename(count = n)
+#Generate the Barplot for the Positive/Negative Sentiment
+#For Each Age Group
+ggplot(plotDf, aes(Age_Group), ylim(-30:30)) + 
+geom_bar(data = subset(plotDf, sentiment == "positive"), 
+   aes(y = count, fill = sentiment), stat = "identity", position = "dodge") +
+geom_bar(data = subset(plotDf, sentiment == "negative"), 
+   aes(y = -count, fill = sentiment), stat = "identity", position = "dodge") + 
+geom_hline(yintercept = 0,colour = "grey90") + 
+  #Now Add the Tect to it
+geom_text(data = subset(plotDf, sentiment == "positive"), 
+      aes(Age_Group, count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = 1.5, size=4) +
+geom_text(data = subset(plotDf, sentiment == "negative"), 
+      aes(Age_Group, -count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = -.5, size=4) +
+    coord_cartesian(ylim = c(-30, 30))
+
+```
+We can see across all age range the negative sentiment is slightly higher than the positive sentiment.
+
+Now instead of ` bing` we can use ` affin` which assigns a value positive/negative to each word and calculate the average sentiment for age group we have.
+
+```{r, message=FALSE, warning=FALSE}
+#Calculate Average sentiment for each inmate
+avgSentAgeGrp <- wordDf %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(Age_Group) %>% 
+  summarise( totalWords = sum(count), sentSum = sum(value)) %>% 
+  mutate(Avg_Sentiment = sentSum / totalWords)
+#Print the dataset
+head(avgSentAgeGrp, n=20)
+```
+
+Here also we see the average sentiment is negative almost all age range except the population under 18.
+
+Now let's analyze the sentiments by gender.
+
+```{r, message=FALSE, warning=FALSE, error=TRUE}
+#Word Count by each Inmate
+wordDf <- sfoDf %>% 
+  select(Gender,  Q7_text_All) %>% 
+   rename(Comments = Q7_text_All) %>% 
+  unnest_tokens(word, Comments) %>% 
+  anti_join(stop_words) %>% 
+  na.omit() %>% 
+  group_by(Gender, word) %>% 
+  summarise(count = n())
+#Check the data set
+head(wordDf, n = 20)
+```
+
+Let's count positive and negative words for each sex and calculate the sentiment.
+
+```{r , message=FALSE, warning=FALSE}
+#Count positive and negative words
+wordSent_bing <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Gender, sentiment) %>% 
+  count(sentiment)  %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+#Print the dataset
+head(wordSent_bing, n= 10)
+```
+
+The sentiment is negative for both males and females. Let's plot the data we generated above.
+
+```{r , message=FALSE, warning=FALSE}
+#Generate the Dataset for the Plot
+plotDf <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Gender, sentiment) %>% 
+  count(sentiment) %>% 
+  rename(count = n)
+#Generate the Barplot for the Positive/Negative Sentiment
+#For Each Age Group
+ggplot(plotDf, aes(Gender), ylim(-20:20)) + 
+geom_bar(data = subset(plotDf, sentiment == "positive"), 
+   aes(y = count, fill = sentiment), stat = "identity", position = "dodge") +
+geom_bar(data = subset(plotDf, sentiment == "negative"), 
+   aes(y = -count, fill = sentiment), stat = "identity", position = "dodge") + 
+geom_hline(yintercept = 0,colour = "grey90") + 
+  #Now Add the Tect to it
+geom_text(data = subset(plotDf, sentiment == "positive"), 
+      aes(Gender, count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = 1.5, size=4) +
+geom_text(data = subset(plotDf, sentiment == "negative"), 
+      aes(Gender, -count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = -.5, size=4) +
+    coord_cartesian(ylim = c(-20, 20))
+```
+
+Let's use ` affin` again and calculate the average sentiment for each sex.
+
+```{r, message=FALSE, warning=FALSE}
+#Calculate Average sentiment for each inmate
+avgSentSex <- wordDf %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(Gender) %>% 
+  summarise( totalWords = sum(count), sentSum = sum(value)) %>% 
+  mutate(Avg_Sentiment = sentSum / totalWords)
+#Print the dataset
+head(avgSentSex, n=20)
+```
+
+
+
+Let's check the count of distinct words used by each income group and remove the stop words before do the count.
+
+```{r, message=FALSE, warning=FALSE}
+#Word Count by each Inmate
+wordDf <- sfoDf %>% 
+  select(Q7_text_All, Income) %>% 
+   rename(Comments = Q7_text_All) %>% 
+  unnest_tokens(word, Comments) %>% 
+  anti_join(stop_words) %>% 
+  na.omit() %>% 
+  group_by(Income, word) %>% 
+  summarise(count = n())
+#Check the data set
+head(wordDf, n = 20)
+```
+
+Let's count positive and negative words for each income group and calculate the sentiment.
+
+```{r , message=FALSE, warning=FALSE}
+#Count positive and negative words
+wordSent_bing <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Income, sentiment) %>% 
+  count(sentiment)  %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+#Print the dataset
+head(wordSent_bing, n= 10)
+```
+
+The sentiment is dominantly negative for all income group.
+
+We can plot this data as well.
+
+```{r , message=FALSE, warning=FALSE}
+#Generate the Dataset for the Plot
+plotDf <- wordDf %>% 
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(Income, sentiment) %>% 
+  count(sentiment) %>% 
+  rename(count = n)
+#Generate the Barplot for the Positive/Negative Sentiment
+#For Each Age Group
+ggplot(plotDf, aes(Income), ylim(-20:20)) + 
+geom_bar(data = subset(plotDf, sentiment == "positive"), 
+   aes(y = count, fill = sentiment), stat = "identity", position = "dodge") +
+geom_bar(data = subset(plotDf, sentiment == "negative"), 
+   aes(y = -count, fill = sentiment), stat = "identity", position = "dodge") + 
+geom_hline(yintercept = 0,colour = "grey90") + 
+  #Now Add the Tect to it
+geom_text(data = subset(plotDf, sentiment == "positive"), 
+      aes(Income, count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = 1.5, size=4) +
+geom_text(data = subset(plotDf, sentiment == "negative"), 
+      aes(Income, -count, group=sentiment, label=count),
+        position = position_dodge(width=0.9), vjust = -.5, size=4) +
+    coord_cartesian(ylim = c(-20, 20))
+
+```
+
+We can use ` affin` again and calculate the average sentiment for all income groups.
+
+```{r, message=FALSE, warning=FALSE}
+#Calculate Average sentiment for each inmate
+avgSentIncome <- wordDf %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(Income) %>% 
+  summarise( totalWords = sum(count), sentSum = sum(value)) %>% 
+  mutate(sentiment = sentSum / totalWords)
+#Print the dataset
+head(avgSentIncome, n=20)
+```
+
+#### Part B
+### Topic Models
+
+Let's try topic models to find out the themes. 
+
+```{r, message=FALSE, warning=FALSE}
+
+feedbackText = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf)
+```
+
+We might need to do some encoding conversion, remove non-graphical characters within the data, and remove that offending character. Let's check for encoding in the dataset.
+
+```{r, message=FALSE, warning=FALSE}
+rvest::guess_encoding(sfoDf$Q7_text_All)
+```
+
+ We see the word “airport” in a lot of the entries. We don’t want this messing with my topics on down the line, so let’s see how much it is around.
+ 
+```{r, message=FALSE, warning=FALSE}
+#Convert the comments to all uppercase
+sfoDf$Q7_text_All <- toupper(sfoDf$Q7_text_All)
+#Find the frequency of airport
+nrow(sfoDf[grepl("AIRPORT", sfoDf$Q7_text_All), ])
+```
+
+We see 'airport' is used almost 500 times. We can add the word 'airport' in the stopwords list. In addition to custom stopwords, we'll also like to include the SMART words again (it is the default) and the english stopwords. 
+
+
+```{r, message=FALSE, warning=FALSE}
+feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All, 
+                           metadata = sfoDf, 
+                           onlycharacter = TRUE,
+                           customstopwords = c("airport", 
+                                               tm::stopwords("SMART"), 
+                                               tm::stopwords("en")))
+
+feedbackTextPrep = prepDocuments(documents = feedbackTextProcess$documents, 
+                               vocab = feedbackTextProcess$vocab,
+                               meta = feedbackTextProcess$meta)
+```
+
+The ` stm` package has some pretty nice facilities for determining a number of topics. We can try topics from 2 to 5 and see what we get.
+
+```{r , message=FALSE, warning=FALSE}
+kTest = searchK(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextProcess$vocab, 
+             K = c(2, 3, 4, 5), verbose = FALSE)
+
+plot(kTest)
+```
+
+Looking at the residual and Semantic Coherence we think 4 topics is the best to go for. With our 4 topics, we can start our actual model.
+
+```{r , message=FALSE, warning=FALSE}
+topics4 = stm(documents = feedbackTextPrep$documents, 
+             vocab = feedbackTextPrep$vocab, 
+             K = 4, verbose = FALSE)
+```
+If we plot the stm result, we get the proportional prevalence of the topics, with some keywords for each topic.
+
+
+```{r , message=FALSE, warning=FALSE}
+plot(topics4)
+```
+
+Additional functions can help to understand the words that fall into each topic, which assist in identifying and labeling the topics. 
+
+```{r , message=FALSE, warning=FALSE}
+labelTopics(topics4)
+```
+
+From the plot of the topics and from the example words we can conclude that - 
+
+* Topic 1 is likely expressing about the directions and signs in the SFO airport 
+* Topic 2 is likely expressing about the small display and lack of information displayed. 
+* Topic 3 likely expressing about the customs and security inefficiency and long waiting time. 
+* Topic 4 likely expressing about the restaurants availability and food choices. 
+
+We can look at statements that have a high probability of being associated with each topic here. This presents documents that are representative of each topic.
+
+```{r , message=FALSE, warning=FALSE}
+findThoughts(topics4, texts = feedbackTextPrep$meta$Q7_text_All , n = 1)
+```
+
+We can see the statements are along the expectations we mentioned earlier by each topic.
+
+
+
+
