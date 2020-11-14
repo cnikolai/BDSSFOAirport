@@ -50,7 +50,7 @@ set.seed(1847)
 #sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
 sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
 #Print the data
-datatable(sfoDf %>% select(-Q7_text_All), caption = "SFO Survey Data", rownames = NULL, width = 1000, options = list(scrollX = TRUE))
+datatable(sfoDf %>% dyplr::select(-Q7_text_All), caption = "SFO Survey Data", rownames = NULL, width = 1000, options = list(scrollX = TRUE))
 ```
 
 Let's do some basic EDA and aggregated statistics on our data to gain a better insight of it. We can create some visuals for no of flights by terminal and destination category and also can have a look the busiest gates for each terminals.
@@ -165,7 +165,7 @@ sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000",
                                                ifelse(sfoDf$Q19 == 5, "Other", "Blank")))))
 #Generate the data for Plot
 satisfaction_data <- sfoDf %>%
-  select('Gender','Age_Group','Income','Q6N') %>% 
+  dplyr::select('Gender','Age_Group','Income','Q6N') %>% 
   melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
   select(-'variable') %>% 
   na.omit(.)
@@ -316,7 +316,7 @@ sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
 ```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
 lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
 
-lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000)
+lcaAllqsClasses = poLCA(lcaFormula, sfoDfq2, nclass = 5, maxiter = 10000)
 ```
 
 Note: even though we set the seed, we get a different ordering of the classes every time we run the code.  Therefore, these classes and ordering might now match entirely with our output above. As you can see from the output, approximately 20% of the population falls into class 1, approximately 29% of the population falls within class 2, approximately 7.3% of the population falls within class 3, approximately 19% of the population falls within class 4, and approximately 25% of the population falls within class 5.  Generally, class 1 votes a 6 on the satisfaction with SFO, class 2 votes a 4 on the satisfaction with SFO, class 3 votes a 5 on the satisfaction with SFO, classes 4 and 5 generally votes a 3 on the scale.  
@@ -453,7 +453,7 @@ Now if we perform the similar analysis for each gender and each income group we 
 ```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
 #Word Count by each Inmate
 wordDf <- sfoDf %>% 
-  select(Gender,  Q7_text_All) %>% 
+  dplyr::select(Gender,  Q7_text_All) %>% 
    rename(Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
   anti_join(stop_words) %>% 
@@ -515,7 +515,7 @@ datatable(avgSentSex, caption = "Average Sentiment by Gender", rownames = NULL, 
 ```{r, echo = F, message=FALSE, warning=FALSE}
 #Word Count by each Inmate
 wordDf <- sfoDf %>% 
-  select(Q7_text_All, Income) %>% 
+  dplyr::select(Q7_text_All, Income) %>% 
    rename(Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
   anti_join(stop_words) %>% 
