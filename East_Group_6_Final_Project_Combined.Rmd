@@ -41,11 +41,15 @@ library(magrittr)
 library(tidyr)
 library(stm)
 library(DT)
+library(poLCA)
+
+#sets the seed
+set.seed(1847)
 
 #Read the data set
-sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
+#sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
+sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
 #Print the data
-#head(sfoDf)
 datatable(sfoDf %>% select(-Q7_text_All), caption = "SFO Survey Data", rownames = NULL, width = 1000, options = list(scrollX = TRUE))
 ```
 
@@ -237,7 +241,7 @@ Let’s take a look at a correlation plot to see if any patterns jump out.
 ```{r , echo = F, message=FALSE, warning=FALSE, error=TRUE}
 #Select the Survey Questions
 short_survey <- sfoDf %>% 
-  select(Q6A:Q6N)
+  dplyr::select(Q6A:Q6N)
 #Generate the Correlation Plot
 short_survey %>% 
   cor(., use="complete.obs") %>% 
@@ -263,7 +267,6 @@ surveyFA_3 <- short_survey %>%
 surveyFA_3$loadings
 ```
 
-
 With 3 factors, we see that people who answered positively about shopping, navigational aides, and moving walkways (6A,6B,6C,6D,6E,6F) also tended to answer positively for the overall score (6N).  One interpretation of factor MR1 as people are often in a hurry to catch their flight and appreciate being able to move through the airport quickly.  Another option is that people are appreciative of the food and shopping.
 
 We also see in factor MR2 the same parking and transportation correlation we saw in the plot.  People who answered positively about the parking also did so about airport transportation services (6I,6J,6K,6L,6M).  However, positive responses in these questions did not appear to effect the overall score.
@@ -287,9 +290,40 @@ With 4 factors, it becomes a bit more clear what most respondents seem to favor:
 
 #### Latent Class Analysis
 
-Cindy to populate.
+```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
+#select question 6 questions we are interested in
+sfoDfq2 <- sfoDf %>% dplyr::select(Q6A:Q6N) %>% drop_na()
+```
+
+First, we drop the NAs, and then code 0 as 6 so that the LCA has the classes properly ordered. What this means is that a blank score, in this case, we put equivalent to a "not applicable" score. We tried, 3, 4, and 5 groups of classes.  Five classes has the lowest BIC over three and four classes, so we chose five classes for our analysis.  
+
+```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
+sfoDfq2$Q6A[sfoDfq2$Q6A == 0] = 6
+sfoDfq2$Q6B[sfoDfq2$Q6B == 0] = 6
+sfoDfq2$Q6C[sfoDfq2$Q6C == 0] = 6
+sfoDfq2$Q6D[sfoDfq2$Q6D == 0] = 6
+sfoDfq2$Q6E[sfoDfq2$Q6E == 0] = 6
+sfoDfq2$Q6F[sfoDfq2$Q6F == 0] = 6
+sfoDfq2$Q6G[sfoDfq2$Q6G == 0] = 6
+sfoDfq2$Q6H[sfoDfq2$Q6H == 0] = 6
+sfoDfq2$Q6I[sfoDfq2$Q6I == 0] = 6
+sfoDfq2$Q6J[sfoDfq2$Q6J == 0] = 6
+sfoDfq2$Q6K[sfoDfq2$Q6K == 0] = 6
+sfoDfq2$Q6L[sfoDfq2$Q6L == 0] = 6
+sfoDfq2$Q6M[sfoDfq2$Q6M == 0] = 6
+sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
+```
+```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
+lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
+
+lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000)
+```
+
+Note: even though we set the seed, we get a different ordering of the classes every time we run the code.  Therefore, these classes and ordering might now match entirely with our output above. As you can see from the output, approximately 20% of the population falls into class 1, approximately 29% of the population falls within class 2, approximately 7.3% of the population falls within class 3, approximately 19% of the population falls within class 4, and approximately 25% of the population falls within class 5.  Generally, class 1 votes a 6 on the satisfaction with SFO, class 2 votes a 4 on the satisfaction with SFO, class 3 votes a 5 on the satisfaction with SFO, classes 4 and 5 generally votes a 3 on the scale.  
 
 ### Discussion 
+
+From our LCA analysis, we can see that 29% of the respondents are likely to be satisfied at a level 4 or above with SFO.  7.3% are likely to respond with a 5 on the satisfaction scale, and 46% are likely to vote a 3 on a satisfaction scale.  This means that whereas 46% of the responses are a likely to be a 3, there is definite room for improvement at SFO.  
 
 Overall, we have found that though there seem to be four total "themes", there are only two "themes" that have a noticeable relationship to overall satisfaction:
 
@@ -297,9 +331,6 @@ Overall, we have found that though there seem to be four total "themes", there a
 * 2 - Navigational signs and moving walkways
 
 Of those, it would seem that the navigational signs and moving walkways have a higher correlation with overall satisfaction.  From this, we conclude that people are often in a hurry and prioritize the ability to get to their get quickly and easily.  Also somewhat important are the available food services and shops. 
-
-Cindy to append.
-
 
 ## Question 3
 
@@ -343,7 +374,7 @@ Now let’s count positive and negative words for each age group and calculate t
 ```{r, echo= F, message=FALSE, warning=FALSE}
 #Word Count by each Inmate
 wordDf <- sfoDf %>% 
-  select(Q7_text_All, Q17, Age_Group) %>% 
+  dplyr::select(Q7_text_All, Q17, Age_Group) %>% 
    rename(Age = Q17,
          Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
@@ -653,9 +684,14 @@ library(magrittr)
 library(tidyr)
 library(stm)
 library(DT)
+library(poLCA)
+
+#sets the seed
+set.seed(1847)
 
 #Read the data set
-sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
+#sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
+sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
 #Print the data
 head(sfoDf)
 
@@ -1047,8 +1083,27 @@ head(avgSentIncome, n=20)
 ## Latent Class Analysis  ##
 ###########################
 
+#select question 6 questions we are interested in
+sfoDfq2 <- sfoDf %>% dplyr::select(Q6A:Q6N) %>% drop_na()
 
-## Cindy
+sfoDfq2$Q6A[sfoDfq2$Q6A == 0] = 6
+sfoDfq2$Q6B[sfoDfq2$Q6B == 0] = 6
+sfoDfq2$Q6C[sfoDfq2$Q6C == 0] = 6
+sfoDfq2$Q6D[sfoDfq2$Q6D == 0] = 6
+sfoDfq2$Q6E[sfoDfq2$Q6E == 0] = 6
+sfoDfq2$Q6F[sfoDfq2$Q6F == 0] = 6
+sfoDfq2$Q6G[sfoDfq2$Q6G == 0] = 6
+sfoDfq2$Q6H[sfoDfq2$Q6H == 0] = 6
+sfoDfq2$Q6I[sfoDfq2$Q6I == 0] = 6
+sfoDfq2$Q6J[sfoDfq2$Q6J == 0] = 6
+sfoDfq2$Q6K[sfoDfq2$Q6K == 0] = 6
+sfoDfq2$Q6L[sfoDfq2$Q6L == 0] = 6
+sfoDfq2$Q6M[sfoDfq2$Q6M == 0] = 6
+sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
+
+lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
+
+lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000)
 
 
 ########################
