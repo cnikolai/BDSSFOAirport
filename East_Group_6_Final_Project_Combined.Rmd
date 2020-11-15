@@ -167,7 +167,7 @@ sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000",
 satisfaction_data <- sfoDf %>%
   dplyr::select('Gender','Age_Group','Income','Q6N') %>% 
   melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
-  select(-'variable') %>% 
+  dplyr::select(-'variable') %>% 
   na.omit(.)
 satisfaction_data$Income <- factor(satisfaction_data$Income,levels = c('Under $50,000',"$50,000-$100,00","$100,001-$150,000","Over $150,000","Other","Blank"))
 satisfaction_data$Age_Group <- factor(satisfaction_data$Age_Group, levels = c( "Under 18","18-24","25-34","35-44","45-54","55-64","65 and Over","Don't Know/Refused","Blank", "NA"))
@@ -816,9 +816,9 @@ p
 
 #Cleanliness Comments by Gender/Income
 cleanliness_data <- sfoDf %>%
-  select(Age,Gender, Income, 'Q8COM1':'Q8COM2') %>% 
+  dplyr::select(Age,Gender, Income, 'Q8COM1':'Q8COM2') %>% 
   melt(., id.vars=c('Age','Gender','Income'), value.name = 'Comments') %>% 
-  select(-'variable') %>% 
+  dplyr::select(-'variable') %>% 
   na.omit(.)
 
 ggplot(cleanliness_data, aes(x=as.factor(Comments), fill=Income)) + 
@@ -852,9 +852,9 @@ ggplot(cleanliness_data, aes(x=Income)) +
 ##########################################
 
 satisfaction_data <- sfoDf %>%
-  select('Gender','Age_Group','Income','Q6N') %>% 
+  dplyr::select('Gender','Age_Group','Income','Q6N') %>% 
   melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
-  select(-'variable') %>% 
+  dplyr::select(-'variable') %>% 
   na.omit(.)
 satisfaction_data$Income <- factor(satisfaction_data$Income,levels = c('Under $50,000',"$50,000-$100,00","$100,001-$150,000","Over $150,000","Other","Blank"))
 satisfaction_data$Age_Group <- factor(satisfaction_data$Age_Group, levels = c( "Under 18","18-24","25-34","35-44","45-54","55-64","65 and Over","Don't Know/Refused","Blank", "NA"))
@@ -873,7 +873,7 @@ lm_score <- lm(Score ~ Gender + Age_Group + Income,data = satisfaction_data)
 summary(lm_score)
 
 short_survey <- sfoDf %>% 
-  select(Q6A:Q6N)
+  dplyr::select(Q6A:Q6N)
 
 short_survey %>% 
   cor(., use="complete.obs") %>% 
@@ -918,7 +918,7 @@ sfoDf$Q7_text_All %>%
 
 #Word Count by each Age Group
 wordDf <- sfoDf %>% 
-  select(Q7_text_All, Q17, Age_Group) %>% 
+  dplyr::select(Q7_text_All, Q17, Age_Group) %>% 
    rename(Age = Q17,
          Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
@@ -973,7 +973,7 @@ head(avgSentAgeGrp, n=20)
 
 #Word Count by each Gender
 wordDf <- sfoDf %>% 
-  select(Gender,  Q7_text_All) %>% 
+  dplyr::select(Gender,  Q7_text_All) %>% 
    rename(Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
   anti_join(stop_words) %>% 
@@ -1027,7 +1027,7 @@ head(avgSentSex, n=20
      
 #Word Count by each Income Group
 wordDf <- sfoDf %>% 
-  select(Q7_text_All, Income) %>% 
+  dplyr::select(Q7_text_All, Income) %>% 
    rename(Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
   anti_join(stop_words) %>% 
