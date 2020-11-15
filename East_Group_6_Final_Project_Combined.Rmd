@@ -51,7 +51,7 @@ sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
 datatable(sfoDf %>% dplyr::select(-Q7_text_All), caption = "SFO Survey Data", rownames = NULL, width = 1000, options = list(scrollX = TRUE))
 ```
 
-Let's do some basic EDA and aggregated statistics on our data to gain a better insight of it. We can create some visuals for no of flights by terminal and destination category and also can have a look the busiest gates for each terminals.
+Let's do some basic EDA and aggregated statistics on our data to gain a better insight of it. We can create some visuals for number of flights by terminal and destination category and also can have a look the busiest gates for each terminals.
 
 ```{r flightByTerminal, echo = F, message=FALSE, warning=FALSE, error=TRUE}
 #Airline terminal
@@ -121,15 +121,14 @@ p
 
 # Part A
 
-The SFO team have three (3) specific questions they want us to investigate.
+The SFO team has three (3) specific questions they want us to investigate.
 
 
 ## Question 1
 
 Customers were asked to rate their opinion of the "SFO Airport as a whole" on a scale from 1 ("unacceptable") to 5 ("outstanding"). The executives want to know if there are patterns across the satisfied or dissatisfied customers based on demographic characteristics, such as sex, age group, and income level.
-Hypothesis/Hypotheses.
 
-### Hypothesis/Hypotheses
+### Hypotheses
 
 We are theorizing that there will be distinct patterns that emerge in the demographic data, but are yet unsure of what they will show.
 
@@ -163,7 +162,7 @@ sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000",
 satisfaction_data <- sfoDf %>%
   dplyr::select('Gender','Age_Group','Income','Q6N') %>% 
   melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
-  select(-'variable') %>% 
+  dplyr::select(-'variable') %>% 
   na.omit(.)
 satisfaction_data$Income <- factor(satisfaction_data$Income,levels = c('Under $50,000',"$50,000-$100,00","$100,001-$150,000","Over $150,000","Other","Blank"))
 satisfaction_data$Age_Group <- factor(satisfaction_data$Age_Group, levels = c( "Under 18","18-24","25-34","35-44","45-54","55-64","65 and Over","Don't Know/Refused","Blank", "NA"))
@@ -173,7 +172,7 @@ ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Income)) +
   facet_wrap(~Gender) + 
   labs(title="Satisfaction Score by Gender/Income", x='Score', y='Count')
 ```
-We can see that the most common response for "How does SFO Airport rate as a whole" was a 4, which is one step below the highest score.  Worth noting here is that while 6 is an option, it represents "Have never used or visited/not applicable" so we consider a 5 the highest score.  The largest number of respondents who gave SFO a 4 appear to have income within `$50,000 - $100,000`. This could be because they liked it best, or because they are the largest respondent group.  We also see that male respondents had a higher proportion of '3' responses than '5', the opposite being true for females.  We will want to test this theory later in a regression model.
+We can see that the most common response for "How does SFO Airport rate as a whole" was a 4, which is one step below the highest score.  It is worth noting here is that while 6 is an option, it represents "Have never used or visited/not applicable" so we consider a 5 the highest score.  The largest number of respondents who gave SFO a 4 appear to have income within `$50,000 - $100,000`. This could be because they liked it best, or because they are the largest respondent group.  We also see that male respondents had a higher proportion of '3' responses than '5', the opposite being true for females.  We will want to test this theory later in a regression model.
 
 Now let's take a look at the responses grouped by Income and Age.
 
@@ -196,13 +195,13 @@ Based on this simple regression, we see that only 4 of the demographic categorie
 
 ### Discussion 
 
-Based on our demographic analysis, we see that only 4 of the demographic categories have a statistically significant impact on the overall rating: `GenderMale`, `Income$50,000-$100,00`, `Income$100,001-$150,000`, and `IncomeOver $150,000`.  Each of these 4 categories appears to have an overall negative influence on the satisfaction score.  What this tells us that, in general, Men tend to have more negative opinions of the airport.  Also, the overall opinion of SFO seems to decline as a person's income increases.
+Based on our demographic analysis, we see that only 4 of the demographic categories have a statistically significant impact on the overall rating: `GenderMale`, `Income$50,000-$100,00`, `Income$100,001-$150,000`, and `IncomeOver $150,000`.  Each of these 4 categories appears to have an overall negative influence on the satisfaction score.  What this tells us that, in general, men tend to have more negative opinions of the airport.  Also, the overall opinion of SFO seems to decline as a person's income increases.
 
 ## Question 2
 
-The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport (see Question 6 in the data directory). The executives want you to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
+The executives also want to know if customer satisfaction can be broken down into different attributes of the airport. Knowing this will help the team target specific strengths or areas of improvement. The central feature the customer satisfaction survey is a 14-question portion of the survey asking customers to rate satisfaction with different aspects of the airport. The executives want you to perform a quantitative analysis to determine if there are broad themes that emerge from this part of the survey.
 
-### Hypothesis/Hypotheses
+### Hypotheses
 
 Based on the fact that the questions fall into distinct categories, we are theorizing that there are distinct underlying factors that influence overall satisfaction. What we do not know though is which are the most/least important areas of the airport as it pertains to overall satisfaction
 
@@ -210,7 +209,7 @@ Based on the fact that the questions fall into distinct categories, we are theor
 
 #### Factor Analysis
 
-For the second question, we feel that the best approach will be factor analysis. This should allow us to see if there are commonalities in the responses, and from there determine which questions appear to be the “most important,” or at least most indicative of positive overall satisfaction.
+For this question, our first approach will be a factor analysis. This will allow us to see if there are commonalities in the responses, and from there determine which questions appear to be the “most important,” or at least most indicative of positive overall satisfaction.
 
 We will need to look at the responses to all parts of Question 6:
 
@@ -243,7 +242,7 @@ short_survey %>%
   ggcorrplot(type = "lower")
 ```
 
-Immediately we see that questions about the information booths (6H and 6G) are almost perfectly positively correlated, likely meaning the information booth quality is the same, regardless of its location.  We also see there is a string positive correlation among many of the travel and parking related responses (6J, 6K, 6L, 6M).
+Immediately we see that questions about the information booths (6H and 6G) are almost perfectly positively correlated, likely meaning the information booth quality is the same, regardless of its location.  We also see there is a strong positive correlation among many of the travel and parking related responses (6J, 6K, 6L, 6M).
 
 What we see in the correlation plot leads us to think there may be some themes here, so we will do a more thorough factor analysis to see if this holds true.  To begin, we will see how many factors will be best to use.
 
@@ -290,7 +289,7 @@ With 4 factors, it becomes a bit more clear what most respondents seem to favor:
 sfoDfq2 <- sfoDf %>% dplyr::select(Q6A:Q6N) %>% drop_na()
 ```
 
-First, we drop the NAs, and then code 0 as 6 so that the LCA has the classes properly ordered. What this means is that a blank score, in this case, we put equivalent to a "not applicable" score. We tried, 3, 4, and 5 groups of classes.  Five classes has the lowest BIC over three and four classes, so we chose five classes for our analysis.  
+A latent class analysis will also be helpful in analyzing customer satisfaction.  First, we drop the NAs, and then code 0 as 6 so that the LCA has the classes properly ordered. What this means is that a blank score, in this case, we put equivalent to a "not applicable" score. We tried, 3, 4, and 5 groups of classes.  Five classes has the lowest BIC over three and four classes, so we chose five classes for our analysis.  
 
 ```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
 sfoDfq2$Q6A[sfoDfq2$Q6A == 0] = 6
@@ -309,19 +308,20 @@ sfoDfq2$Q6M[sfoDfq2$Q6M == 0] = 6
 sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
 ```
 ```{r , echo = F, message=FALSE, warning=FALSE, error=TRUE, fig.height= 12, fig.width=15}
+
 #sets the seed
 set.seed(1847)
 lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
 lcaAllqsClasses = poLCA(lcaFormula, sfoDfq2, nclass = 5, maxiter = 10000, verbose = F)
+
 #Plot the LCA
 plot(lcaAllqsClasses)
 ```
-
-Note: even though we set the seed, we get a different ordering of the classes every time we run the code.  Therefore, these classes and ordering might now match entirely with our output above. As you can see from the output, approximately 20% of the population falls into class 1, approximately 29% of the population falls within class 2, approximately 7.3% of the population falls within class 3, approximately 19% of the population falls within class 4, and approximately 25% of the population falls within class 5.  Generally, class 1 votes a 6 on the satisfaction with SFO, class 2 votes a 4 on the satisfaction with SFO, class 3 votes a 5 on the satisfaction with SFO, classes 4 and 5 generally votes a 3 on the scale.  
+Approximately 7.3% of the population falls into class 1, approximately 24% of the population falls within class 2, approximately 19% of the population falls within class 3, approximately 29% of the population falls within class 4, and approximately 21% of the population falls within class 5.  Generally, class 1 votes a 5 on the satisfaction with SFO, class 2 votes a 4 on the satisfaction with SFO, class 3 votes a 3 on the satisfaction with SFO, class 4 generally votes a 3 or a 6 on the scale, and class 5 generally votes a 5 or a 6 on the satisfaction scale.  
 
 ### Discussion 
 
-From our LCA analysis, we can see that 29% of the respondents are likely to be satisfied at a level 4 or above with SFO.  7.3% are likely to respond with a 5 on the satisfaction scale, and 46% are likely to vote a 3 on a satisfaction scale.  This means that whereas 46% of the responses are a likely to be a 3, there is definite room for improvement at SFO.  
+From our LCA analysis, we can see that 24% of the respondents are likely to be satisfied at a level 4 with SFO.  7.3% are likely to respond with a 5 on the satisfaction scale, and 19% are likely to vote a 3 on a satisfaction scale.  This means that whereas 19% of the responses are a likely to be a 3, there is definite room for improvement at SFO.  
 
 Overall, we have found that though there seem to be four total "themes", there are only two "themes" that have a noticeable relationship to overall satisfaction:
 
@@ -332,11 +332,11 @@ Of those, it would seem that the navigational signs and moving walkways have a h
 
 ## Question 3
 
-Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. Do the free responses relate to the findings in a) or b) at all?
+Free-response comments, either good or bad, were collected in addition to the 14-item quantitative survey. The executives are not quite sure how to examine it without going through individual surveys one by one, but they want you to see if there are any concepts or insights that arise from these responses. 
 
-### Hypothesis/Hypotheses
+### Hypotheses
 
-We strongly believe that the free response questions will align with the overall satisfaction scores. If the satisfaction score is not impressive the comments from the travelers should reflect a overall negative sentiment or dissatisfaction.
+We strongly believe that the free response questions will align with the overall satisfaction scores. If the satisfaction score is not impressive. the comments from the travelers should reflect a overall negative sentiment or dissatisfaction.
 
 ### Analysis and Results
 
@@ -564,12 +564,12 @@ datatable(avgSentIncome, caption = "Average Sentiment by Income Group", rownames
 
 ### Discussion 
 
-So from the sentiment analysis of the free response comment we see the dominating sentiment is negative irrespective of age, gender and income groups here. It might be due to the fact that people with negative experience are usually are the one to fill the survey but there are definitely areas of improvements. The overall picture of sentiments certainly matches with the quantitative results we got in previous questions.
+From the sentiment analysis of the free response comments, we see the dominating sentiment is negative irrespective of age, gender and income groups here. It might be due to the fact that people with negative experience usually are the ones to fill the survey but there are definitely areas of improvements. The overall picture of sentiments certainly matches with the quantitative results we got in previous questions.
 
 
 # Part B
 
-The SFO executives feel that additional insights can be gained from the customer satisfaction survey dataset. Based on your prior EDA deliverable and the topics we have discussed in class, develop an additional research question and execute a plan to evaluate it with these data using a method we covered this semester. Provide an appropriate explanation of your method of choice and how it applies to your question. If formal hypotheses are tested, clearly explain the results of these tests. If the method is more descriptive or data-driven, define how the results are evaluated, and provide sufficient output and data visuals to communicate the outcome. You don’t need to fish for a “significant” finding here; even null or unexpected results can be useful if the hypothesis is reasonable.
+The SFO executives feel that additional insights can be gained from the customer satisfaction survey dataset. 
 
 
 ### Research Question
