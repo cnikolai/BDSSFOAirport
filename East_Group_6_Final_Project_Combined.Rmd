@@ -50,7 +50,7 @@ set.seed(1847)
 #sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
 sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
 #Print the data
-datatable(sfoDf %>% dyplr::select(-Q7_text_All), caption = "SFO Survey Data", rownames = NULL, width = 1000, options = list(scrollX = TRUE))
+datatable(sfoDf %>% dplyr::select(-Q7_text_All), caption = "SFO Survey Data", rownames = NULL, width = 1000, options = list(scrollX = TRUE))
 ```
 
 Let's do some basic EDA and aggregated statistics on our data to gain a better insight of it. We can create some visuals for no of flights by terminal and destination category and also can have a look the busiest gates for each terminals.
