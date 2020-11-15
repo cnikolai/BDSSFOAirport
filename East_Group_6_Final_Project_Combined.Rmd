@@ -308,12 +308,10 @@ sfoDfq2$Q6M[sfoDfq2$Q6M == 0] = 6
 sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
 ```
 ```{r , echo = F, message=FALSE, warning=FALSE, error=TRUE, fig.height= 12, fig.width=15}
-
 #sets the seed
 set.seed(1847)
 lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
 lcaAllqsClasses = poLCA(lcaFormula, sfoDfq2, nclass = 5, maxiter = 10000, verbose = F)
-
 #Plot the LCA
 plot(lcaAllqsClasses)
 ```
@@ -570,6 +568,8 @@ From the sentiment analysis of the free response comments, we see the dominating
 # Part B
 
 The SFO executives feel that additional insights can be gained from the customer satisfaction survey dataset. 
+
+Based on our prior EDA and the methods we have discussed, we develop an additional research question and put our best efforts to address it here.
 
 
 ### Research Question
