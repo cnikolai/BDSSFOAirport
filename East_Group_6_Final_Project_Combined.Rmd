@@ -42,10 +42,8 @@ library(tidyr)
 library(stm)
 library(DT)
 library(poLCA)
-
 #sets the seed
 set.seed(1847)
-
 #Read the data set
 #sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
 sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
@@ -65,7 +63,6 @@ flightByTerm <- sfoDf %>%
   group_by(TERM) %>%
   summarise(Flight_By_Terminal = n()) %>% 
   rename(Terminal = TERM)
-
 #Plot the Data
 fig <- plot_ly(
   flightByTerm,
@@ -114,7 +111,6 @@ top5GtByTerm <- sfoDf %>%
   top_n(n=5) %>% 
   arrange(TERM, GATENUM) %>% 
   rename(Terminal = TERM, Gate_Num = GATENUM)
-
 #Plot the Data
 p <- ggplot(top5GtByTerm, aes(Gate_Num, Flight_Count)) + 
   geom_bar(position = "dodge", stat = "identity") + 
@@ -167,11 +163,10 @@ sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000",
 satisfaction_data <- sfoDf %>%
   dplyr::select('Gender','Age_Group','Income','Q6N') %>% 
   melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
-  dplyr::select(-'variable') %>% 
+  select(-'variable') %>% 
   na.omit(.)
 satisfaction_data$Income <- factor(satisfaction_data$Income,levels = c('Under $50,000',"$50,000-$100,00","$100,001-$150,000","Over $150,000","Other","Blank"))
 satisfaction_data$Age_Group <- factor(satisfaction_data$Age_Group, levels = c( "Under 18","18-24","25-34","35-44","45-54","55-64","65 and Over","Don't Know/Refused","Blank", "NA"))
-
 #Plot the data
 ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Income)) + 
   geom_bar(stat='count') +
@@ -313,10 +308,13 @@ sfoDfq2$Q6L[sfoDfq2$Q6L == 0] = 6
 sfoDfq2$Q6M[sfoDfq2$Q6M == 0] = 6
 sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
 ```
-```{r, echo = F, message=FALSE, warning=FALSE, error=TRUE}
+```{r , echo = F, message=FALSE, warning=FALSE, error=TRUE, fig.height= 12, fig.width=15}
+#sets the seed
+set.seed(1847)
 lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
-
-lcaAllqsClasses = poLCA(lcaFormula, sfoDfq2, nclass = 5, maxiter = 10000)
+lcaAllqsClasses = poLCA(lcaFormula, sfoDfq2, nclass = 5, maxiter = 10000, verbose = F)
+#Plot the LCA
+plot(lcaAllqsClasses)
 ```
 
 Note: even though we set the seed, we get a different ordering of the classes every time we run the code.  Therefore, these classes and ordering might now match entirely with our output above. As you can see from the output, approximately 20% of the population falls into class 1, approximately 29% of the population falls within class 2, approximately 7.3% of the population falls within class 3, approximately 19% of the population falls within class 4, and approximately 25% of the population falls within class 5.  Generally, class 1 votes a 6 on the satisfaction with SFO, class 2 votes a 4 on the satisfaction with SFO, class 3 votes a 5 on the satisfaction with SFO, classes 4 and 5 generally votes a 3 on the scale.  
@@ -355,8 +353,6 @@ sfoDf$Q7_text_All <- gsub(pattern = "/",
 sfoDf$Q7_text_All <- gsub(pattern = "-", 
                           replacement = " ", 
                           sfoDf$Q7_text_All)
-
-
 #Generate Wordcloud after removing stop words
   sfoDf %>% 
   unnest_tokens(tbl = ., output = word, input = Q7_text_All) %>%
@@ -384,7 +380,6 @@ wordDf <- sfoDf %>%
   summarise(count = n())
 #Check the data set
 #head(wordDf, n = 20)
-
 #Count positive and negative words
 wordSent_bing <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -392,7 +387,6 @@ wordSent_bing <- wordDf %>%
   count(sentiment)  %>% 
   spread(sentiment, n, fill = 0) %>% 
   mutate(sentiment = positive - negative)
-
 #Print the dataset
 #head(wordSent_bing, n= 10)
 datatable(wordSent_bing, caption = "Sentiment by Age Group", rownames = NULL, options = list(dom = "t"))
@@ -424,7 +418,6 @@ geom_text(data = subset(plotDf, sentiment == "negative"),
       aes(Age_Group, -count, group=sentiment, label=count),
         position = position_dodge(width=0.9), vjust = -.5, size=4) +
     coord_cartesian(ylim = c(-30, 30))
-
 ```
 
 
@@ -462,7 +455,6 @@ wordDf <- sfoDf %>%
   summarise(count = n())
 #Check the data set
 #head(wordDf, n = 20)
-
 #Count positive and negative words
 wordSent_bing <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -473,7 +465,6 @@ wordSent_bing <- wordDf %>%
 #Print the dataset
 #head(wordSent_bing, n= 10)
 datatable(wordSent_bing, caption = "Sentiment by Gender", rownames = NULL, options = list(dom = "t"))
-
 #Generate the Dataset for the Plot
 plotDf <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -533,10 +524,8 @@ wordSent_bing <- wordDf %>%
   mutate(sentiment = positive - negative)
 #Print the dataset
 #head(wordSent_bing, n= 10)
-
 #Generate the Dataset for the Plot
 datatable(wordSent_bing, caption = "Sentiment by Income Group", rownames = NULL, options = list(dom = "t"))
-
 #Generate the Dataset for the Plot
 plotDf <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -599,7 +588,6 @@ The ` stm` package has some pretty nice facilities for determining a number of t
 feedbackText = textProcessor(documents = sfoDf$Q7_text_All, 
                            metadata = sfoDf,
                            verbose = FALSE)
-
 feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All, 
                            metadata = sfoDf, 
                            onlycharacter = TRUE,
@@ -607,15 +595,12 @@ feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All,
                                                tm::stopwords("SMART"), 
                                                tm::stopwords("en")),
                            verbose = FALSE)
-
 feedbackTextPrep = prepDocuments(documents = feedbackTextProcess$documents, 
                                vocab = feedbackTextProcess$vocab,
                                meta = feedbackTextProcess$meta)
-
 kTest = searchK(documents = feedbackTextPrep$documents, 
              vocab = feedbackTextProcess$vocab, 
              K = c(2, 3, 4, 5), verbose = FALSE)
-
 plot(kTest)
 ```
 
@@ -625,7 +610,6 @@ Looking at the residual and Semantic Coherence we think 4 or 5 topics is the bes
 topics4 = stm(documents = feedbackTextPrep$documents, 
              vocab = feedbackTextPrep$vocab, 
              K = 4, verbose = FALSE)
-
 plot(topics4)
 ```
 
@@ -685,34 +669,25 @@ library(tidyr)
 library(stm)
 library(DT)
 library(poLCA)
-
 #sets the seed
 set.seed(1847)
-
 #Read the data set
 #sfoDf <- read_delim('C:/MSDS/Fall 2020/Behavioral Data Science/Project/SFO_survey_withText.txt', delim="\t")
 sfoDf <- read_delim('SFO_survey_withText.txt', delim="\t")
 #Print the data
 head(sfoDf)
-
-
 ############
 ## EDA   ##
 ###########
-
-
 #Provide basic statistics of the data
 summary(sfoDf)
-
 #Count the NA or missing Rows for each columns
 sapply(sfoDf, function(x) sum(is.na(x)))
-
 #Count the NA or missing Rows for each columns
 unlist(sapply(sfoDf, function(x) { 
   if (sum(is.na(x)) > length(x)* 0.5)  
     return (sum(is.na(x))) 
   }))
-
 #Convert the Sex
 sfoDf['Gender'] <- ifelse(sfoDf$Q18 == 1, "Male",
                           ifelse(sfoDf$Q18 == 2, "Female", "Blank"))
@@ -726,14 +701,12 @@ sfoDf['Age_Group'] <- ifelse(sfoDf$Q17 == 1, "Under 18",
                                           ifelse(sfoDf$Q17 == 7, "65 and Over",
                                                 ifelse(sfoDf$Q17 == 8, "Don't Know/Refused", 
                                                        ifelse(sfoDf$Q17 == 0, "Blank", "NA")))))))))
-
 #Convert the Income Column
 sfoDf['Income'] <- ifelse(sfoDf$Q19 == 1, "Under $50,000", 
                           ifelse(sfoDf$Q19 == 2, "$50,000-$100,00",
                                  ifelse(sfoDf$Q19 == 3, "$100,001-$150,000",
                                         ifelse(sfoDf$Q19 == 4, "Over $150,000",
                                                ifelse(sfoDf$Q19 == 5, "Other", "Blank")))))
-
 #Airline terminal
 # 1 Terminal 1
 # 2 International Terminal
@@ -744,7 +717,6 @@ flightByTerm <- sfoDf %>%
   summarise(Flight_By_Terminal = n()) %>% 
   rename(Terminal = TERM)
 flightByTerm
-
 fig <- plot_ly(
   flightByTerm,
   x = ~as.character(Terminal),
@@ -756,7 +728,6 @@ fig <- fig %>%
          xaxis = list(title = "Terminal No"),
          yaxis = list(title = "No of Flights By Terminal"))
 fig
-
 #Airline type (based on Sampling Plan)
 # 1 Major carriers
 # 2 Small/International carriers
@@ -765,7 +736,6 @@ sfoDf %>%
   group_by(ATYPE) %>%
   summarise(Flight_By_Carrier = n()) %>% 
   rename(Airline_Type = ATYPE)
-
 # DEST Destination of flight
 # 1 Within California
 # 2 Out of state
@@ -774,7 +744,6 @@ sfoDf %>%
   group_by(DEST) %>%
   summarise(Flight_By_Destination = n()) %>% 
   rename(Destination = DEST)
-
 flightByTCD <- sfoDf %>% 
   rename(Terminal = TERM, Airline_Type = ATYPE, Destination = DEST) %>% 
   group_by(Terminal, Airline_Type, Destination) %>%
@@ -797,7 +766,6 @@ p <- ggplot(flightByTCD, aes(Airline_Type, Flight_Count)) +
 p <- p + facet_wrap( ~ Terminal, ncol=3)
 #ggplotly(p)
 p
-
 #Busiest 5 gates by Terminal 
 top5GtByTerm <- sfoDf %>% 
   group_by(TERM, GATENUM) %>% 
@@ -812,97 +780,76 @@ p <- ggplot(top5GtByTerm, aes(Gate_Num, Flight_Count)) +
   geom_text(aes(label=Flight_Count), vjust=0) + 
   facet_wrap( ~ Terminal, ncol=3)
 p
-
-
 #Cleanliness Comments by Gender/Income
 cleanliness_data <- sfoDf %>%
-  dplyr::select(Age,Gender, Income, 'Q8COM1':'Q8COM2') %>% 
+  select(Age,Gender, Income, 'Q8COM1':'Q8COM2') %>% 
   melt(., id.vars=c('Age','Gender','Income'), value.name = 'Comments') %>% 
-  dplyr::select(-'variable') %>% 
+  select(-'variable') %>% 
   na.omit(.)
-
 ggplot(cleanliness_data, aes(x=as.factor(Comments), fill=Income)) + 
   geom_bar(stat='count') +
   facet_wrap(~Gender) + 
   labs(title="Cleanliness Comments by Gender/Income")
-
 #Cleanliness Comments by Gender/Age
 ggplot(cleanliness_data, aes(x=as.factor(Comments), fill=Age)) + 
   geom_bar(stat='count') +
   facet_wrap(~Gender) +
   labs(title="Cleanliness Comments by Gender/Age")
-
 #Cleanliness Comment Count by Age and Gender
 ggplot(cleanliness_data, aes(x=Age)) + 
   geom_bar(stat='count') +
   facet_wrap(~Gender) +
   labs(title="Cleanliness Comment Count by Age and Gender")
-
 #Cleanliness Comment Count by Income and Gender
 ggplot(cleanliness_data, aes(x=Income)) + 
   geom_bar(stat='count') +
   facet_wrap(~Gender) +
   labs(title="Cleanliness Comment Count by Income and Gender")+ 
   theme(axis.text.x = element_text(angle = 30, vjust = 0.7))
-
 ## Code for Part 2 of the Project ##
-
 ##########################################
 ## Satisfaction Score by Age/Income/Sex ##
 ##########################################
-
 satisfaction_data <- sfoDf %>%
-  dplyr::select('Gender','Age_Group','Income','Q6N') %>% 
+  select('Gender','Age_Group','Income','Q6N') %>% 
   melt(., id.vars=c('Age_Group','Gender','Income'), value.name = 'Score') %>% 
-  dplyr::select(-'variable') %>% 
+  select(-'variable') %>% 
   na.omit(.)
 satisfaction_data$Income <- factor(satisfaction_data$Income,levels = c('Under $50,000',"$50,000-$100,00","$100,001-$150,000","Over $150,000","Other","Blank"))
 satisfaction_data$Age_Group <- factor(satisfaction_data$Age_Group, levels = c( "Under 18","18-24","25-34","35-44","45-54","55-64","65 and Over","Don't Know/Refused","Blank", "NA"))
-
 ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Income)) + 
   geom_bar(stat='count') +
   facet_wrap(~Gender) + 
   labs(title="Satisfaction Score by Gender/Income", x='Score', y='Count')
-
 ggplot(satisfaction_data, aes(x=as.factor(Score), fill=Age_Group)) + 
   geom_bar(stat='count') +
   facet_wrap(~Income) +
   labs(title="Satisfaction Score by Income/Age", x='Score', y='Count')
-
 lm_score <- lm(Score ~ Gender + Age_Group + Income,data = satisfaction_data)
 summary(lm_score)
-
 short_survey <- sfoDf %>% 
-  dplyr::select(Q6A:Q6N)
-
+  select(Q6A:Q6N)
 short_survey %>% 
   cor(., use="complete.obs") %>% 
   ggcorrplot(type = "lower")
-
 ########################
 ## Factor Analysis   ##
 #######################
-
 short_survey %>% 
   nfactors()
-
 surveyFA_3 <- short_survey %>% 
   fa(., nfactors = 3, rotate = "promax")
 surveyFA_3$loadings
-
 surveyFA_4 <- short_survey %>% 
   fa(., nfactors = 4, rotate = "promax")
 surveyFA_4$loadings
-
 ########################
 ## Sentiment Analysis##
 #######################
-
 #Comment Column
 sfoDf$Q7_text_All %>% 
   na.omit %>% 
   head(10)
-
 #Remove the Slash
 sfoDf$Q7_text_All <- gsub(pattern = "/", 
                           replacement = " ", 
@@ -915,10 +862,9 @@ sfoDf$Q7_text_All <- gsub(pattern = "-",
 sfoDf$Q7_text_All %>% 
   na.omit %>% 
   head(10)
-
 #Word Count by each Age Group
 wordDf <- sfoDf %>% 
-  dplyr::select(Q7_text_All, Q17, Age_Group) %>% 
+  select(Q7_text_All, Q17, Age_Group) %>% 
    rename(Age = Q17,
          Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
@@ -928,7 +874,6 @@ wordDf <- sfoDf %>%
   summarise(count = n())
 #Check the data set
 head(wordDf, n = 20)
-
 #Count positive and negative words
 wordSent_bing <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -938,7 +883,6 @@ wordSent_bing <- wordDf %>%
   mutate(sentiment = positive - negative)
 #Print the dataset
 head(wordSent_bing, n= 10)
-
 #Generate the Dataset for the Plot
 plotDf <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -961,7 +905,6 @@ geom_text(data = subset(plotDf, sentiment == "negative"),
       aes(Age_Group, -count, group=sentiment, label=count),
         position = position_dodge(width=0.9), vjust = -.5, size=4) +
     coord_cartesian(ylim = c(-30, 30))
-
 #Calculate Average sentiment for each Age Group
 avgSentAgeGrp <- wordDf %>% 
   inner_join(get_sentiments("afinn")) %>% 
@@ -970,10 +913,9 @@ avgSentAgeGrp <- wordDf %>%
   mutate(Avg_Sentiment = sentSum / totalWords)
 #Print the dataset
 head(avgSentAgeGrp, n=20)
-
 #Word Count by each Gender
 wordDf <- sfoDf %>% 
-  dplyr::select(Gender,  Q7_text_All) %>% 
+  select(Gender,  Q7_text_All) %>% 
    rename(Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
   anti_join(stop_words) %>% 
@@ -982,7 +924,6 @@ wordDf <- sfoDf %>%
   summarise(count = n())
 #Check the data set
 head(wordDf, n = 20)
-
 #Count positive and negative words
 wordSent_bing <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -992,7 +933,6 @@ wordSent_bing <- wordDf %>%
   mutate(sentiment = positive - negative)
 #Print the dataset
 head(wordSent_bing, n= 10)
-
 #Generate the Dataset for the Plot
 plotDf <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -1015,7 +955,6 @@ geom_text(data = subset(plotDf, sentiment == "negative"),
       aes(Gender, -count, group=sentiment, label=count),
         position = position_dodge(width=0.9), vjust = -.5, size=4) +
     coord_cartesian(ylim = c(-20, 20))
-
 #Calculate Average sentiment for each Gender
 avgSentSex <- wordDf %>% 
   inner_join(get_sentiments("afinn")) %>% 
@@ -1027,7 +966,7 @@ head(avgSentSex, n=20
      
 #Word Count by each Income Group
 wordDf <- sfoDf %>% 
-  dplyr::select(Q7_text_All, Income) %>% 
+  select(Q7_text_All, Income) %>% 
    rename(Comments = Q7_text_All) %>% 
   unnest_tokens(word, Comments) %>% 
   anti_join(stop_words) %>% 
@@ -1036,7 +975,6 @@ wordDf <- sfoDf %>%
   summarise(count = n())
 #Check the data set
 head(wordDf, n = 20)
-
 #Count positive and negative words
 wordSent_bing <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -1046,7 +984,6 @@ wordSent_bing <- wordDf %>%
   mutate(sentiment = positive - negative)
 #Print the dataset
 head(wordSent_bing, n= 10)
-
 #Generate the Dataset for the Plot
 plotDf <- wordDf %>% 
   inner_join(get_sentiments("bing")) %>% 
@@ -1068,7 +1005,6 @@ geom_text(data = subset(plotDf, sentiment == "negative"),
       aes(Income, -count, group=sentiment, label=count),
         position = position_dodge(width=0.9), vjust = -.5, size=4) +
     coord_cartesian(ylim = c(-20, 20))
-
 #Calculate Average sentiment for each income Group
 avgSentIncome <- wordDf %>% 
   inner_join(get_sentiments("afinn")) %>% 
@@ -1077,15 +1013,11 @@ avgSentIncome <- wordDf %>%
   mutate(sentiment = sentSum / totalWords)
 #Print the dataset
 head(avgSentIncome, n=20)
-
-
 ############################
 ## Latent Class Analysis  ##
 ###########################
-
 #select question 6 questions we are interested in
 sfoDfq2 <- sfoDf %>% dplyr::select(Q6A:Q6N) %>% drop_na()
-
 sfoDfq2$Q6A[sfoDfq2$Q6A == 0] = 6
 sfoDfq2$Q6B[sfoDfq2$Q6B == 0] = 6
 sfoDfq2$Q6C[sfoDfq2$Q6C == 0] = 6
@@ -1100,53 +1032,37 @@ sfoDfq2$Q6K[sfoDfq2$Q6K == 0] = 6
 sfoDfq2$Q6L[sfoDfq2$Q6L == 0] = 6
 sfoDfq2$Q6M[sfoDfq2$Q6M == 0] = 6
 sfoDfq2$Q6N[sfoDfq2$Q6N == 0] = 6
-
 lcaFormula = cbind(Q6A, Q6B, Q6C, Q6D, Q6E, Q6F, Q6G, Q6H, Q6I, Q6J, Q6K, Q6L, Q6M, Q6N) ~ 1
-
-lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000)
-
-
+lcaAllqsClasses = poLCA(lcaFormula, sfoDf, nclass = 5, maxiter = 10000, verbose = F)
+#Plot the LCA
+plot(lcaAllqsClasses))
 ########################
 ## Topic Models      ##
 #######################
-
 feedbackText = textProcessor(documents = sfoDf$Q7_text_All, 
                            metadata = sfoDf)
-
 rvest::guess_encoding(sfoDf$Q7_text_All)
-
 #Convert the comments to all uppercase
 sfoDf$Q7_text_All <- toupper(sfoDf$Q7_text_All)
 #Find the frequency of airport
 nrow(sfoDf[grepl("AIRPORT", sfoDf$Q7_text_All), ])
-
 feedbackTextProcess = textProcessor(documents = sfoDf$Q7_text_All, 
                            metadata = sfoDf, 
                            onlycharacter = TRUE,
                            customstopwords = c("airport", 
                                                tm::stopwords("SMART"), 
                                                tm::stopwords("en")))
-
 feedbackTextPrep = prepDocuments(documents = feedbackTextProcess$documents, 
                                vocab = feedbackTextProcess$vocab,
                                meta = feedbackTextProcess$meta)
-
 kTest = searchK(documents = feedbackTextPrep$documents, 
              vocab = feedbackTextProcess$vocab, 
              K = c(2, 3, 4, 5), verbose = FALSE)
 plot(kTest)
-
 topics4 = stm(documents = feedbackTextPrep$documents, 
              vocab = feedbackTextPrep$vocab, 
              K = 4, verbose = FALSE)
-
 plot(topics4)
-
 labelTopics(topics4)
-
 findThoughts(topics4, texts = feedbackTextPrep$meta$Q7_text_All , n = 1)
-
 ```
-
-
-
